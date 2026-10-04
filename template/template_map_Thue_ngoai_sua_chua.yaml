@@ -1,0 +1,37 @@
+# Đo từ file BM.TB.04.01.pdf (27/09/2026). Đơn vị pt, gốc trên-trái, trang ngang 792x612.
+template_file: BM.TB.04.01.pdf
+page: { width: 792, height: 612 }
+fonts: { regular: app/static/fonts/times.ttf, bold: app/static/fonts/timesbd.ttf,
+         fallback_regular: DejaVuSerif.ttf, fallback_bold: DejaVuSerif-Bold.ttf }
+header:
+  request_date: { x: 642, baseline_top: 109.5, size: 10.5 }   # ngay sau nhãn "Ngày lập :"
+  # "Số" (y 83.6–98.4) cố ý không ánh xạ
+place_date: { enabled: false, x: 600, baseline_top: 377.5, size: 10 }  # sau "Ninh Bình:"
+lines:
+  max_rows: 6
+  row_height: 28.8
+  row_tops: [194.5, 223.3, 252.1, 281.0, 309.7, 338.5]
+  font_size: 9
+  min_font_size: 6
+  padding: 2.5
+  columns:              # [x0, x1, align]
+    line_no:        [42.0,  91.0,  center]
+    repair_code:    [91.0,  140.5, center]
+    equipment_name: [140.5, 235.2, left]
+    unit_name:      [235.2, 318.3, left]
+    condition:      [318.3, 377.5, left]
+    uom_name:       [377.5, 411.5, center]
+    qty:            [411.5, 445.5, center]
+    category_name:  [445.5, 479.5, center]
+    note:           [649.5, 749.5, left]
+  # 445.5–649.5 (hạng mục, nhóm CP, báo giá, ra/vào cổng): KHÔNG vẽ
+signers:                # che tên cũ bằng nền trắng rồi vẽ tên mới, căn giữa theo center_x
+  creator:  { center_x: 138.6, name_top: 450.7, cover_width: 150 }
+  head:     { center_x: 360.2, name_top: 451.0, cover_width: 150 }
+  director: { center_x: 648.5, name_top: 450.7, cover_width: 150 }
+  name_size: 10
+  titles:               # chỉ vẽ khi chức danh trong Cài đặt khác mặc định
+    creator:  { center_x: 138.8, top: 383.3 }
+    head:     { center_x: 365.1, top: 383.3 }
+    director: { center_x: 648.6, top: 383.3 }
+overflow_strategy: extra_page   # extra_page | block
