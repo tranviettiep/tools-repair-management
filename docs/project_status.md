@@ -11,8 +11,15 @@
     *   Hoàn thiện toàn bộ các trang: Dashboard, Quản lý Máy, Sửa chữa, Kho phụ tùng, Báo cáo, Người dùng, Cài đặt.
     *   Xây dựng hệ thống Mock API để chạy thử nghiệm trực tiếp trên trình duyệt (Chế độ Demo).
     *   **Nâng cấp chức năng:** Thêm nhiều máy công cụ cùng lúc, báo hỏng nhiều máy cùng lúc (bỏ trường Ưu tiên, không bắt buộc mô tả).
-*   **Backend (Google Apps Script):**
-    *   Đã tạo toàn bộ các dịch vụ: `Auth.gs`, `MachineService.gs`, `RepairService.gs`, `SparePartService.gs`, `ReportService.gs`, `UserService.gs`, `Code.gs`.
+*   **Backend & Cơ sở dữ liệu:**
+    *   ~~(Cũ) Google Apps Script & Google Sheets~~.
+    *   **(Mới - 04/10/2026):** Đã chuyển đổi toàn bộ hệ thống sang **Supabase (PostgreSQL)** giúp tăng tốc độ truy xuất dữ liệu gấp 20 lần. Cấu trúc DB được lưu trữ tại `database/supabase_schema.sql`.
+    *   File `js/api.js` đã được viết lại sử dụng `supabase-js` để gọi API trực tiếp không cần qua máy chủ trung gian.
+*   **Triển khai & Hosting:**
+    *   Đã kết nối mã nguồn với GitHub thông qua GitHub Desktop.
+    *   Website đã được host trực tuyến thành công bằng **GitHub Pages**.
+*   **Kỹ năng tự động hóa (AI Skills):**
+    *   Đã thiết lập kỹ năng `template-generate` (tại `.agents/skills/template-generate/SKILL.md`) giúp AI phân tích ảnh/markdown biểu mẫu mẫu và tự động sinh code xuất file PDF (sử dụng jsPDF).
 *   **Tính năng Đề nghị cấp vật tư & Sửa chữa ngoài (✅ Cập nhật mới nhất):**
     *   **Quản lý danh sách hoàn chỉnh:** Chuyển đổi tính năng Đề nghị cấp vật tư từ dạng biểu mẫu tĩnh sang danh sách quản lý (tương tự Sửa chữa ngoài), có nút tạo mới, xem/sửa, cập nhật trạng thái (Nháp, Đang xử lý, Hoàn thành), xóa và xuất PDF/Excel.
     *   **Backend cho Đề xuất vật tư:** Đã khởi tạo `proposals` database (ở API và Google Apps Script `ProposalService.gs`).
@@ -32,13 +39,13 @@
 
 ## 2. Các hạng mục CẦN LÀM tiếp theo (To-Do)
 
-**👉 Về phía AI:**
-1. Hỗ trợ bạn kết nối Frontend với Google Apps Script URL (nếu có lỗi CORS hoặc lỗi cấu trúc dữ liệu).
-2. Hỗ trợ test lỗi (Debug) các tính năng sau khi đã chạy trên cơ sở dữ liệu thật (Google Sheets).
-3. Tùy chỉnh thêm biểu mẫu Excel nếu công ty yêu cầu thay đổi.
+**👉 Về phía hệ thống & AI (Cho phiên làm việc tới):**
+1. Test kỹ năng `template-generate`: Người dùng sẽ tải lên biểu mẫu (ưu tiên dạng Ảnh/Markdown), AI sẽ bóc tách các trường dữ liệu và thiết lập code tự động sinh PDF.
+2. Kiểm tra tính ổn định của các chức năng trên cơ sở dữ liệu Supabase mới.
 
 **👉 Về phía người dùng:**
-1. **Triển khai Backend:** Làm theo hướng dẫn trong `docs/setup-guide.md` để đưa các file `.gs` lên Google Apps Script và liên kết với Google Sheets của bạn.
+1. Trải nghiệm hệ thống trực tuyến trên link GitHub Pages.
+2. Chuẩn bị file ảnh (screenshot) hoặc file text các biểu mẫu xuất PDF cần tạo cho phiên làm việc tới.
 
 ---
-*Ghi chú: Khi mở lại dự án vào lần tới, bạn chỉ cần nhắn "Tiếp tục dự án" hoặc mô tả vấn đề cụ thể, tôi sẽ đọc file này và tiếp tục!*
+*Ghi chú: Khi mở lại dự án vào lần tới, bạn chỉ cần nhắn "Tiếp tục dự án", tải biểu mẫu mẫu lên và kích hoạt kỹ năng, tôi sẽ đọc file này và tiếp tục!*
