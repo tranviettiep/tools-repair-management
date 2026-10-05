@@ -42,6 +42,7 @@ const App = {
     Router.register('/reports', () => this.renderPage('reports'), { title: 'Báo cáo', permission: 'view_reports' });
     Router.register('/users', () => this.renderPage('users'), { title: 'Người dùng', permission: 'manage_users' });
     Router.register('/settings', () => this.renderPage('settings'), { title: 'Cài đặt', permission: 'manage_settings' });
+    Router.register('/guide', () => this.renderPage('guide'), { title: 'Hướng dẫn' });
   },
 
   renderLogin() {
@@ -149,6 +150,7 @@ const App = {
       case 'reports': ReportsPage.render(); break;
       case 'users': UsersPage.render(); break;
       case 'settings': SettingsPage.render(); break;
+      case 'guide': GuidePage.render(); break;
     }
 
     // Close mobile sidebar after navigation

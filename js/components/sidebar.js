@@ -24,6 +24,7 @@ const Sidebar = {
       { section: 'HỆ THỐNG', items: [
         { icon: '👥', label: 'Người dùng', route: '/users', permission: 'manage_users' },
         { icon: '⚙️', label: 'Cài đặt', route: '/settings', permission: 'manage_settings' },
+        { icon: '📖', label: 'Hướng dẫn', route: '/guide', permission: 'view_machines' },
       ]},
     ];
 
