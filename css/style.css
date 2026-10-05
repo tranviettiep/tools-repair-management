@@ -994,7 +994,7 @@ input, select, textarea, button {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .table-toolbar {

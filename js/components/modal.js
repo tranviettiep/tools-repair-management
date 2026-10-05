@@ -37,7 +37,7 @@ const Modal = {
       if (onClose) onClose();
     };
 
-    overlay.querySelector('[data-modal-close]').addEventListener('click', close);
+    overlay.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', close));
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) close();
     });

@@ -105,15 +105,15 @@ const Auth = {
 
       // Machines
       'view_machines': ['admin', 'manager', 'technician', 'reporter'],
-      'create_machine': ['admin'],
-      'edit_machine': ['admin'],
-      'delete_machine': ['admin'],
+      'create_machine': ['admin', 'technician'],
+      'edit_machine': ['admin', 'technician'],
+      'delete_machine': ['admin', 'technician'],
 
       // Repairs
       'view_repairs': ['admin', 'manager', 'technician', 'reporter'],
       'create_repair': ['admin', 'manager', 'technician', 'reporter'],
-      'receive_repair': ['admin', 'manager'],
-      'assign_technician': ['admin', 'manager'],
+      'receive_repair': ['admin'],
+      'assign_technician': ['admin'],
       'update_repair': ['admin', 'technician'],
       'complete_repair': ['admin', 'manager', 'technician'],
 

@@ -8,6 +8,18 @@ const MachinesPage = {
   currentPage: 1,
   pageSize: 50,
   filters: { search: '', machine_type: '', department: '', status: '' },
+  configData: [],
+  
+  _getConfigValue(key, defaultVal) {
+    if (!this.configData) return defaultVal;
+    const item = this.configData.find(c => c.key === key);
+    if (!item) return defaultVal;
+    try {
+      return JSON.parse(item.value);
+    } catch {
+      return defaultVal;
+    }
+  },
 
   async render() {
     const container = document.getElementById('page-content');
@@ -30,18 +42,9 @@ const MachinesPage = {
             <div class="table-filters">
               <select id="filter-type" onchange="MachinesPage.onFilter()">
                 <option value="">Tất cả loại máy</option>
-                <option value="Máy mài tay">Máy mài tay</option>
-                <option value="Máy mài góc">Máy mài góc</option>
-                <option value="Máy đục tay">Máy đục tay</option>
-                <option value="Máy khoan tay">Máy khoan tay</option>
-                <option value="Máy cắt">Máy cắt</option>
               </select>
               <select id="filter-dept" onchange="MachinesPage.onFilter()">
                 <option value="">Tất cả bộ phận</option>
-                <option value="Phân xưởng A">Phân xưởng A</option>
-                <option value="Phân xưởng B">Phân xưởng B</option>
-                <option value="Phân xưởng C">Phân xưởng C</option>
-                <option value="Phân xưởng D">Phân xưởng D</option>
               </select>
               <select id="filter-status" onchange="MachinesPage.onFilter()">
                 <option value="">Tất cả trạng thái</option>
@@ -66,7 +69,27 @@ const MachinesPage = {
   },
 
   async loadData() {
-    const result = await API.getMachines();
+    const [result, configRes] = await Promise.all([API.getMachines(), API.getConfig()]);
+    if (configRes.success && configRes.data) {
+      this.configData = configRes.data;
+    }
+    
+    // Update filter dropdowns
+    const types = this._getConfigValue('machine_types', []);
+    const depts = this._getConfigValue('departments', []);
+    
+    const typeFilter = document.getElementById('filter-type');
+    if (typeFilter && typeFilter.options.length <= 1) {
+      typeFilter.innerHTML = '<option value="">Tất cả loại máy</option>' + 
+        types.map(t => `<option value="${Utils.escapeHtml(t)}">${Utils.escapeHtml(t)}</option>`).join('');
+    }
+    
+    const deptFilter = document.getElementById('filter-dept');
+    if (deptFilter && deptFilter.options.length <= 1) {
+      deptFilter.innerHTML = '<option value="">Tất cả bộ phận</option>' + 
+        depts.map(d => `<option value="${Utils.escapeHtml(d)}">${Utils.escapeHtml(d)}</option>`).join('');
+    }
+
     if (result.success) {
       this.machines = result.data;
       this.applyFilters();
@@ -96,7 +119,8 @@ const MachinesPage = {
       const s = this.filters.search.toLowerCase();
       result = result.filter(m =>
         m.machine_code.toLowerCase().includes(s) ||
-        m.machine_name.toLowerCase().includes(s)
+        (m.machine_name && m.machine_name.toLowerCase().includes(s)) ||
+        (m.location && m.location.toLowerCase().includes(s))
       );
     }
     if (this.filters.machine_type) result = result.filter(m => m.machine_type === this.filters.machine_type);
@@ -137,10 +161,10 @@ const MachinesPage = {
           <tr>
             <th style="width:40px"><input type="checkbox" class="table-checkbox" onchange="MachinesPage.toggleAll(this.checked)"></th>
             <th>Mã máy</th>
-            <th>Tên máy</th>
             <th>Loại máy</th>
+            <th>Hãng sản xuất</th>
+            <th>Model</th>
             <th>Bộ phận</th>
-            <th>Vị trí</th>
             <th>Trạng thái</th>
             <th style="width:50px"></th>
           </tr>
@@ -150,10 +174,10 @@ const MachinesPage = {
             <tr data-id="${m.id}">
               <td><input type="checkbox" class="table-checkbox row-checkbox" value="${m.id}"></td>
               <td><strong style="color:var(--accent-secondary)">${Utils.escapeHtml(m.machine_code)}</strong></td>
-              <td>${Utils.escapeHtml(m.machine_name)}</td>
               <td>${Utils.escapeHtml(m.machine_type)}</td>
+              <td>${Utils.escapeHtml(m.machine_name)}</td>
+              <td>${Utils.escapeHtml(m.location)}</td>
               <td>${Utils.escapeHtml(m.department)}</td>
-              <td class="text-muted">${Utils.escapeHtml(m.location)}</td>
               <td>${Utils.getStatusBadge(m.status)}</td>
               <td>
                 <div class="action-menu">
@@ -244,28 +268,30 @@ const MachinesPage = {
             <input type="text" class="form-input f-machine-code" value="${Utils.escapeHtml(machine.machine_code)}" required>
           </div>
           <div class="form-group">
-            <label>Tên máy <span class="required">*</span></label>
-            <input type="text" class="form-input f-machine-name" value="${Utils.escapeHtml(machine.machine_name)}" required>
+            <label>Loại máy <span class="required">*</span></label>
+            <select class="form-select f-machine-type" required>
+              <option value="">Chọn loại máy</option>
+              ${this._getConfigValue('machine_types', []).map(t => `<option value="${Utils.escapeHtml(t)}" ${machine.machine_type === t ? 'selected' : ''}>${Utils.escapeHtml(t)}</option>`).join('')}
+            </select>
           </div>
         </div>
         <div class="form-row machine-entry">
           <div class="form-group">
-            <label>Loại máy <span class="required">*</span></label>
-            <select class="form-select f-machine-type" required>
-              ${['Máy mài tay', 'Máy mài góc', 'Máy đục tay', 'Máy khoan tay', 'Máy cắt'].map(t => `<option value="${t}" ${machine.machine_type === t ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
+            <label>Hãng sản xuất</label>
+            <input type="text" class="form-input f-machine-name" value="${Utils.escapeHtml(machine.machine_name)}" placeholder="VD: Bosch, Makita...">
           </div>
           <div class="form-group">
-            <label>Bộ phận <span class="required">*</span></label>
-            <select class="form-select f-department" required>
-              ${['Phân xưởng A', 'Phân xưởng B', 'Phân xưởng C', 'Phân xưởng D'].map(d => `<option value="${d}" ${machine.department === d ? 'selected' : ''}>${d}</option>`).join('')}
-            </select>
+            <label>Model</label>
+            <input type="text" class="form-input f-location" value="${Utils.escapeHtml(machine.location || '')}">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Vị trí</label>
-            <input type="text" class="form-input" id="f-location" value="${Utils.escapeHtml(machine.location || '')}">
+            <label>Bộ phận <span class="required">*</span></label>
+            <select class="form-select f-department" required>
+              <option value="">Chọn bộ phận</option>
+              ${this._getConfigValue('departments', []).map(d => `<option value="${Utils.escapeHtml(d)}" ${machine.department === d ? 'selected' : ''}>${Utils.escapeHtml(d)}</option>`).join('')}
+            </select>
           </div>
           <div class="form-group">
             <label>Trạng thái</label>
@@ -316,14 +342,14 @@ const MachinesPage = {
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Loại máy *</label>
         <select class="form-select f-machine-type" required>
           <option value="">-- Chọn --</option>
-          ${['Máy mài tay', 'Máy mài góc', 'Máy đục tay', 'Máy khoan tay', 'Máy cắt'].map(t => `<option value="${t}">${t}</option>`).join('')}
+          ${this._getConfigValue('machine_types', []).map(t => `<option value="${Utils.escapeHtml(t)}">${Utils.escapeHtml(t)}</option>`).join('')}
         </select>
       </div>
       <div style="flex:1; min-width:150px">
         <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Bộ phận *</label>
         <select class="form-select f-department" required>
           <option value="">-- Chọn --</option>
-          ${['Phân xưởng A', 'Phân xưởng B', 'Phân xưởng C', 'Phân xưởng D'].map(d => `<option value="${d}">${d}</option>`).join('')}
+          ${this._getConfigValue('departments', []).map(d => `<option value="${Utils.escapeHtml(d)}">${Utils.escapeHtml(d)}</option>`).join('')}
         </select>
       </div>
       <button class="btn btn-ghost" onclick="this.parentElement.remove()" style="color:var(--status-danger); position:absolute; top:-10px; right:-10px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; font-size:12px">✕</button>
@@ -340,12 +366,12 @@ const MachinesPage = {
         machine_name: document.querySelector('.f-machine-name').value.trim(),
         machine_type: document.querySelector('.f-machine-type').value,
         department: document.querySelector('.f-department').value,
-        location: document.getElementById('f-location').value.trim(),
-        status: document.getElementById('f-status').value,
-        notes: document.getElementById('f-notes').value.trim(),
+        location: document.querySelector('.f-location') ? document.querySelector('.f-location').value.trim() : document.getElementById('f-location') ? document.getElementById('f-location').value.trim() : '',
+        status: document.getElementById('f-status') ? document.getElementById('f-status').value : 'Hoạt động',
+        notes: document.getElementById('f-notes') ? document.getElementById('f-notes').value.trim() : '',
       };
-      if (!data.machine_code || !data.machine_name) {
-        Toast.warning('Vui lòng điền đủ mã và tên máy');
+      if (!data.machine_code || !data.machine_type) {
+        Toast.warning('Vui lòng điền đủ mã và loại máy');
         return;
       }
       const result = await API.updateMachine(id, data);
@@ -368,11 +394,11 @@ const MachinesPage = {
           machine_name: entry.querySelector('.f-machine-name').value.trim(),
           machine_type: entry.querySelector('.f-machine-type').value,
           department: entry.querySelector('.f-department').value,
-          location: '',
+          location: entry.querySelector('.f-location') ? entry.querySelector('.f-location').value.trim() : '',
           status: 'Hoạt động',
           notes: ''
         };
-        if (!data.machine_code || !data.machine_name || !data.machine_type || !data.department) valid = false;
+        if (!data.machine_code || !data.machine_type || !data.department) valid = false;
         dataList.push(data);
       });
 
@@ -396,9 +422,7 @@ const MachinesPage = {
   async deleteMachine(id) {
     const machine = this.machines.find(m => m.id === id);
     const confirmed = await Modal.confirm({
-      title: 'Xóa máy công cụ',
-      message: `Bạn có chắc muốn xóa "${machine?.machine_name}"? Hành động này không thể hoàn tác.`,
-      icon: '🗑️',
+      message: `Bạn có chắc muốn xóa "${machine?.machine_code}"? Hành động này không thể hoàn tác.`,
       confirmText: 'Xóa',
       danger: true
     });
@@ -419,13 +443,14 @@ const MachinesPage = {
     if (!m) return;
 
     Modal.show({
-      title: `🔧 ${Utils.escapeHtml(m.machine_name)}`,
+      title: `🔧 ${Utils.escapeHtml(m.machine_code)}`,
       content: `
         <div class="info-card">
           <div class="info-row"><span class="label">Mã máy:</span><span class="value">${Utils.escapeHtml(m.machine_code)}</span></div>
           <div class="info-row"><span class="label">Loại máy:</span><span class="value">${Utils.escapeHtml(m.machine_type)}</span></div>
+          <div class="info-row"><span class="label">Hãng sản xuất:</span><span class="value">${Utils.escapeHtml(m.machine_name || '—')}</span></div>
+          <div class="info-row"><span class="label">Model:</span><span class="value">${Utils.escapeHtml(m.location || '—')}</span></div>
           <div class="info-row"><span class="label">Bộ phận:</span><span class="value">${Utils.escapeHtml(m.department)}</span></div>
-          <div class="info-row"><span class="label">Vị trí:</span><span class="value">${Utils.escapeHtml(m.location || '—')}</span></div>
           <div class="info-row"><span class="label">Trạng thái:</span><span class="value">${Utils.getStatusBadge(m.status)}</span></div>
           <div class="info-row"><span class="label">Ghi chú:</span><span class="value">${Utils.escapeHtml(m.notes || '—')}</span></div>
           <div class="info-row"><span class="label">Ngày tạo:</span><span class="value">${Utils.formatDate(m.created_at)}</span></div>

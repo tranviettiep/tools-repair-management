@@ -264,33 +264,34 @@ const RepairsPage = {
 
   showAddModal() {
     const prefill = Utils.storage.get('prefill_repair');
+    let prefillCode = '';
+    if (prefill && prefill.machine_code) {
+       prefillCode = prefill.machine_code;
+    }
     
-    // Create checkbox list instead of select
-    const machineCheckboxes = this.machines
-      .filter(m => m.status !== 'Ngừng sử dụng')
-      .map(m => `
-        <label style="display:block; padding:8px; border-bottom:1px solid var(--border-color); cursor:pointer;">
-          <input type="checkbox" class="machine-select-cb" value="${m.id}" ${prefill?.machine_id === m.id ? 'checked' : ''} style="margin-right:8px">
-          <strong>${Utils.escapeHtml(m.machine_code)}</strong> - ${Utils.escapeHtml(m.machine_name)} <span class="text-muted">(${Utils.escapeHtml(m.department)})</span>
-        </label>
-      `).join('');
+    const datalist = `
+      <datalist id="dl-machines">
+        ${this.machines.filter(m => m.status !== 'Ngừng sử dụng').map(m => `<option value="${Utils.escapeHtml(m.machine_code)}">${Utils.escapeHtml(m.machine_type)} (${Utils.escapeHtml(m.department)})</option>`).join('')}
+      </datalist>
+    `;
 
     const content = `
+      ${datalist}
       <form id="repair-form" onsubmit="return false">
-        <div class="form-group">
-          <label>Chọn máy công cụ (có thể chọn nhiều) <span class="required">*</span></label>
-          <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary);">
-            ${machineCheckboxes || '<div style="padding:10px; color:var(--text-muted)">Không có máy công cụ khả dụng</div>'}
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Thiết bị khác (ngoài danh mục máy công cụ)</label>
-          <div id="other-devices"></div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addOtherDevice()">+ Thiết bị khác</button>
-        </div>
-        <div class="form-group">
-          <label>Mô tả lỗi/hỏng hóc</label>
-          <textarea class="form-textarea" id="f-fault-desc" rows="4" placeholder="Mô tả tình trạng (không bắt buộc)..."></textarea>
+        <div style="max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
+            <table class="table" style="width: 100%; margin-bottom: 10px;">
+              <thead>
+                <tr>
+                  <th style="width: 50px; text-align: center;">TT</th>
+                  <th style="width: 40%;">Tên công cụ (Gợi ý theo mã)</th>
+                  <th>Mô tả tình trạng hỏng (Không bắt buộc)</th>
+                  <th style="width: 40px;"></th>
+                </tr>
+              </thead>
+              <tbody id="repair-items-body">
+              </tbody>
+            </table>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addRepairRow()">+ Thêm dòng</button>
         </div>
       </form>
     `;
@@ -300,71 +301,100 @@ const RepairsPage = {
       <button class="btn btn-primary" onclick="RepairsPage.submitRepair()">📨 Gửi báo hỏng</button>
     `;
 
-    Modal.show({ title: '🔔 Báo hỏng máy công cụ', content, footer });
+    Modal.show({ title: '🔔 Báo hỏng máy công cụ', content, footer, size: 'lg' });
+    
+    this.addRepairRow(prefillCode);
     if (prefill) Utils.storage.remove('prefill_repair');
   },
 
-  addOtherDevice() {
-    document.getElementById('other-devices').insertAdjacentHTML('beforeend', `
-      <div class="other-device-row" style="display:flex; gap:8px; margin-bottom:8px;">
-        <input type="text" class="form-input od-name" placeholder="Tên thiết bị" style="flex:2">
-        <input type="text" class="form-input od-code" placeholder="Mã thiết bị" style="flex:1">
-        <input type="text" class="form-input od-dept" placeholder="Bộ phận" style="flex:1">
-        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">X</button>
-      </div>`);
+  addRepairRow(initialCode = '') {
+    const tbody = document.getElementById('repair-items-body');
+    const rowCount = tbody.children.length + 1;
+    const tr = document.createElement('tr');
+    tr.className = 'repair-row';
+    tr.innerHTML = `
+      <td style="text-align: center; vertical-align: middle;" class="row-stt">${rowCount}</td>
+      <td>
+        <input type="text" list="dl-machines" class="form-input r-machine" placeholder="Nhập mã/tên thiết bị..." value="${Utils.escapeHtml(initialCode)}" style="width: 100%;">
+      </td>
+      <td>
+        <input type="text" class="form-input r-desc" placeholder="Mô tả tình trạng..." style="width: 100%;">
+      </td>
+      <td style="text-align: center; vertical-align: middle;">
+        <button type="button" class="btn btn-danger btn-sm" style="padding: 4px 8px;" onclick="RepairsPage.removeRepairRow(this)">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+    this.updateRowNumbers();
+  },
+
+  removeRepairRow(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    this.updateRowNumbers();
+  },
+
+  updateRowNumbers() {
+    const rows = document.querySelectorAll('#repair-items-body .repair-row');
+    rows.forEach((row, index) => {
+      row.querySelector('.row-stt').textContent = index + 1;
+    });
   },
 
   async submitRepair() {
-    const selectedCbs = document.querySelectorAll('.machine-select-cb:checked');
-    const faultDesc = document.getElementById('f-fault-desc').value.trim();
-    const otherDevices = Array.from(document.querySelectorAll('.other-device-row'))
-      .map(row => ({
-        name: row.querySelector('.od-name').value.trim(),
-        code: row.querySelector('.od-code').value.trim(),
-        department: row.querySelector('.od-dept').value.trim()
-      }))
-      .filter(d => d.name);
+    const rows = document.querySelectorAll('#repair-items-body .repair-row');
+    const items = [];
+    
+    rows.forEach(row => {
+      const machineInput = row.querySelector('.r-machine').value.trim();
+      const descInput = row.querySelector('.r-desc').value.trim();
+      
+      if (machineInput) {
+        items.push({
+          machineInput,
+          description: descInput
+        });
+      }
+    });
 
-    if (selectedCbs.length === 0 && otherDevices.length === 0) {
-      Toast.warning('Vui lòng chọn hoặc nhập ít nhất một thiết bị');
+    if (items.length === 0) {
+      Toast.warning('Vui lòng nhập ít nhất một thiết bị cần báo hỏng');
       return;
     }
 
     Toast.info('Đang gửi yêu cầu...');
     let successCount = 0;
     
-    for (const cb of selectedCbs) {
-      const machineId = cb.value;
-      const machine = this.machines.find(m => m.id === machineId);
-      if (!machine) continue;
+    for (const item of items) {
+      let machine = this.machines.find(m => m.machine_code === item.machineInput || m.machine_type === item.machineInput);
       
-      const data = {
-        machine_id: machineId,
-        machine_code: machine.machine_code,
-        machine_name: machine.machine_name,
-        department: machine.department,
-        fault_description: faultDesc || 'Không có mô tả',
-        priority: 'Bình thường', // Default backend priority
-        reported_by: Auth.currentUser.full_name,
-      };
-
+      let data;
+      if (machine) {
+        data = {
+          machine_id: machine.id,
+          machine_code: machine.machine_code,
+          machine_name: machine.machine_type,
+          department: machine.department,
+          fault_description: item.description || 'Không có mô tả',
+          priority: 'Bình thường', // Default backend priority
+          reported_by: Auth.currentUser.full_name,
+        };
+      } else {
+        data = {
+          machine_id: '',
+          machine_code: '',
+          machine_name: item.machineInput,
+          department: 'Khác',
+          fault_description: item.description || 'Không có mô tả',
+          priority: 'Bình thường',
+          reported_by: Auth.currentUser.full_name,
+        };
+      }
+      
       const result = await API.createRepair(data);
       if (result.success) successCount++;
     }
-
-    for (const dev of otherDevices) {
-      const result = await API.createRepair({
-        machine_id: '',
-        machine_code: dev.code,
-        machine_name: dev.name,
-        department: dev.department,
-        fault_description: faultDesc || 'Không có mô tả',
-        priority: 'Bình thường',
-        reported_by: Auth.currentUser.full_name,
-      });
-      if (result.success) successCount++;
-    }
-
+    
     if (successCount > 0) {
       Toast.success(`Đã báo hỏng thành công ${successCount} thiết bị`);
       Modal.closeAll();
