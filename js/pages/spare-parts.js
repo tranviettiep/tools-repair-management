@@ -971,7 +971,7 @@ const SparePartsPage = {
       }
     };
     setTimeout(() => document.addEventListener('click', closeHandler), 0);
-  }
+  },
 
   showSupplierLinksModal() {
     Modal.show({
