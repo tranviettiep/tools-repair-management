@@ -6,6 +6,7 @@ const SparePartsPage = {
   parts: [],
   transactions: [],
   proposals: [],
+  supplierLinks: [],
   filteredParts: [],
   activeTab: 'list', // 'list', 'import', 'history'
 
@@ -16,6 +17,7 @@ const SparePartsPage = {
         <div class="page-header">
           <h2>📦 Kho phụ tùng</h2>
           <div class="page-header-actions">
+            <button class="btn btn-secondary" onclick="SparePartsPage.showSupplierLinksModal()">🔗 Link NCC</button>
             ${Auth.can('manage_parts') ? '<button class="btn btn-primary" onclick="SparePartsPage.showAddModal()">+ Thêm phụ tùng</button>' : ''}
           </div>
         </div>
@@ -38,15 +40,26 @@ const SparePartsPage = {
   },
 
   async loadData() {
-    const [partsResult, txResult, propResult] = await Promise.all([
+    const [partsResult, txResult, propResult, configResult] = await Promise.all([
       API.getParts(),
       API.getPartTransactions(),
-      API.request('get_proposals')
+      API.request('get_proposals'),
+      API.getConfig()
     ]);
 
     if (partsResult.success) this.parts = partsResult.data;
     if (txResult.success) this.transactions = txResult.data;
     if (propResult && propResult.success) this.proposals = propResult.data;
+    if (configResult && configResult.success) {
+      const supplierLinkConf = configResult.data.find(c => c.key === 'supplier_links');
+      if (supplierLinkConf && supplierLinkConf.value) {
+        try {
+          this.supplierLinks = JSON.parse(supplierLinkConf.value);
+        } catch(e) {
+          this.supplierLinks = [];
+        }
+      }
+    }
 
     this.renderLowStockAlert();
     this.renderContent();
@@ -958,5 +971,111 @@ const SparePartsPage = {
       }
     };
     setTimeout(() => document.addEventListener('click', closeHandler), 0);
+  }
+
+  showSupplierLinksModal() {
+    Modal.show({
+      title: '🔗 Link Nhà Cung Cấp',
+      content: `
+        <div class="form-group" style="display:flex; gap:8px;">
+          <input type="text" class="form-input" id="supplier-name" placeholder="Tên nhà cung cấp">
+          <input type="text" class="form-input" id="supplier-url" placeholder="https://..." style="flex:2">
+          <button class="btn btn-primary" onclick="SparePartsPage.addSupplierLink()">Thêm</button>
+        </div>
+        <div class="table-wrapper" style="max-height: 400px; overflow-y: auto; margin-top: 16px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tên nhà cung cấp</th>
+                <th>Link</th>
+                <th style="width:100px;text-align:right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="supplier-links-body">
+              ${this.renderSupplierLinksList()}
+            </tbody>
+          </table>
+        </div>
+      `,
+      hideActions: true
+    });
+  },
+
+  renderSupplierLinksList() {
+    if (!this.supplierLinks || this.supplierLinks.length === 0) {
+      return '<tr><td colspan="3" class="text-center text-muted">Chưa có link nào.</td></tr>';
+    }
+    return this.supplierLinks.map((link, idx) => `
+      <tr>
+        <td>${Utils.escapeHtml(link.name)}</td>
+        <td><a href="${Utils.escapeHtml(link.url)}" target="_blank" style="color:var(--primary-color)">Truy cập ↗</a></td>
+        <td style="text-align:right;">
+          <button class="btn btn-sm btn-secondary" onclick="SparePartsPage.editSupplierLink(${idx})" style="padding: 4px 8px;">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="SparePartsPage.deleteSupplierLink(${idx})" style="padding: 4px 8px;">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  },
+
+  async addSupplierLink() {
+    const nameInput = document.getElementById('supplier-name');
+    const urlInput = document.getElementById('supplier-url');
+    const name = nameInput.value.trim();
+    let url = urlInput.value.trim();
+    
+    if (!name || !url) {
+      Toast.warning('Vui lòng nhập tên và link nhà cung cấp');
+      return;
+    }
+    
+    if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url;
+    }
+
+    this.supplierLinks.push({ name, url });
+    await this.saveSupplierLinks();
+    
+    nameInput.value = '';
+    urlInput.value = '';
+    document.getElementById('supplier-links-body').innerHTML = this.renderSupplierLinksList();
+  },
+
+  async editSupplierLink(idx) {
+    const link = this.supplierLinks[idx];
+    const newName = prompt('Nhập tên nhà cung cấp mới:', link.name);
+    if (newName === null) return;
+    
+    let newUrl = prompt('Nhập link mới:', link.url);
+    if (newUrl === null) return;
+    
+    if (newName.trim() === '' || newUrl.trim() === '') {
+      Toast.warning('Tên và link không được để trống');
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(newUrl)) {
+      newUrl = 'https://' + newUrl;
+    }
+
+    this.supplierLinks[idx] = { name: newName.trim(), url: newUrl.trim() };
+    await this.saveSupplierLinks();
+    document.getElementById('supplier-links-body').innerHTML = this.renderSupplierLinksList();
+  },
+
+  async deleteSupplierLink(idx) {
+    if (confirm('Xóa link nhà cung cấp này?')) {
+      this.supplierLinks.splice(idx, 1);
+      await this.saveSupplierLinks();
+      document.getElementById('supplier-links-body').innerHTML = this.renderSupplierLinksList();
+    }
+  },
+
+  async saveSupplierLinks() {
+    const result = await API.updateConfig('supplier_links', JSON.stringify(this.supplierLinks));
+    if (result.success) {
+      Toast.success('Đã lưu danh sách link');
+    } else {
+      Toast.error('Lỗi khi lưu link: ' + result.error);
+    }
   }
 };
