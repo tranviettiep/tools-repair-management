@@ -16,10 +16,10 @@ const Toast = {
     if (!this.container) this.init();
 
     const icons = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️'
+      success: '<i data-lucide="circle-check"></i>',
+      error: '<i data-lucide="circle-x"></i>',
+      warning: '<i data-lucide="triangle-alert"></i>',
+      info: '<i data-lucide="info"></i>'
     };
 
     const toast = document.createElement('div');
@@ -27,7 +27,7 @@ const Toast = {
     toast.innerHTML = `
       <span class="toast-icon">${icons[type] || icons.info}</span>
       <span class="toast-message">${Utils.escapeHtml(message)}</span>
-      <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>
+      <button class="toast-close" onclick="this.closest('.toast').remove()"><i data-lucide="x"></i></button>
     `;
 
     this.container.appendChild(toast);

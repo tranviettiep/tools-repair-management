@@ -10,9 +10,12 @@ const UsersPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>👥 Quản lý người dùng</h2>
+          <div>
+            <h2>Quản lý người dùng</h2>
+            <p class="page-subtitle">Tài khoản, vai trò và quyền truy cập</p>
+          </div>
           <div class="page-header-actions">
-            <button class="btn btn-primary" onclick="UsersPage.showAddModal()">+ Thêm người dùng</button>
+            <button class="btn btn-primary" onclick="UsersPage.showAddModal()"><i data-lucide="plus"></i> Thêm người dùng</button>
           </div>
         </div>
         <div class="table-wrapper">
@@ -64,9 +67,9 @@ const UsersPage = {
                 <div class="action-menu">
                   <button class="action-menu-trigger" onclick="UsersPage.toggleActions(this)">⋮</button>
                   <div class="action-menu-dropdown">
-                    <div class="action-menu-item" onclick="UsersPage.showEditModal('${u.id}')">✏️ Sửa</div>
-                    <div class="action-menu-item" onclick="UsersPage.toggleActive('${u.id}', ${!u.is_active})">${u.is_active ? '🔒 Vô hiệu hóa' : '🔓 Kích hoạt'}</div>
-                    <div class="action-menu-item danger" onclick="UsersPage.deleteUser('${u.id}')">🗑 Xóa</div>
+                    <div class="action-menu-item" onclick="UsersPage.showEditModal('${u.id}')"><i data-lucide="pencil"></i> Sửa</div>
+                    <div class="action-menu-item" onclick="UsersPage.toggleActive('${u.id}', ${!u.is_active})">${u.is_active ? '<i data-lucide="lock"></i> Vô hiệu hóa' : '<i data-lucide="lock-open"></i> Kích hoạt'}</div>
+                    <div class="action-menu-item danger" onclick="UsersPage.deleteUser('${u.id}')"><i data-lucide="trash-2"></i> Xóa</div>
                   </div>
                 </div>
               </td>
@@ -129,10 +132,10 @@ const UsersPage = {
 
     const footer = `
       <button class="btn btn-secondary" data-modal-close>Hủy</button>
-      <button class="btn btn-primary" onclick="UsersPage.saveUser('${user?.id || ''}')">💾 ${isEdit ? 'Cập nhật' : 'Tạo mới'}</button>
+      <button class="btn btn-primary" onclick="UsersPage.saveUser('${user?.id || ''}')"><i data-lucide="save"></i> ${isEdit ? 'Cập nhật' : 'Tạo mới'}</button>
     `;
 
-    Modal.show({ title: isEdit ? '✏️ Sửa người dùng' : '👤 Thêm người dùng', content, footer });
+    Modal.show({ title: isEdit ? '<i data-lucide="pencil"></i> Sửa người dùng' : '<i data-lucide="user"></i> Thêm người dùng', content, footer });
   },
 
   async saveUser(id) {
@@ -187,7 +190,7 @@ const UsersPage = {
     const confirmed = await Modal.confirm({
       title: 'Xóa người dùng',
       message: `Xóa tài khoản "${user?.full_name}"?`,
-      icon: '🗑️',
+      icon: '<i data-lucide="trash-2"></i>',
       confirmText: 'Xóa',
       danger: true
     });

@@ -10,21 +10,21 @@ const Sidebar = {
 
     const navItems = [
       { section: 'CHÍNH', items: [
-        { icon: '📊', label: 'Tổng quan', route: '/dashboard', permission: 'view_dashboard' },
-        { icon: '🔧', label: 'Máy công cụ', route: '/machines', permission: 'view_machines' },
-        { icon: '📋', label: 'Sửa chữa', route: '/repairs', permission: 'view_repairs', badge: this._getPendingCount() },
-        { icon: '🚐', label: 'Sửa chữa ngoài', route: '/external-repairs', permission: 'view_repairs' },
+        { icon: '<i data-lucide="layout-dashboard"></i>', label: 'Tổng quan', route: '/dashboard', permission: 'view_dashboard' },
+        { icon: '<i data-lucide="wrench"></i>', label: 'Máy công cụ', route: '/machines', permission: 'view_machines' },
+        { icon: '<i data-lucide="clipboard-list"></i>', label: 'Sửa chữa', route: '/repairs', permission: 'view_repairs', badge: this._getPendingCount() },
+        { icon: '<i data-lucide="truck"></i>', label: 'Sửa chữa ngoài', route: '/external-repairs', permission: 'view_repairs' },
       ]},
       { section: 'KHO', items: [
-        { icon: '📦', label: 'Phụ tùng', route: '/spare-parts', permission: 'view_parts' },
+        { icon: '<i data-lucide="package"></i>', label: 'Phụ tùng', route: '/spare-parts', permission: 'view_parts' },
       ]},
       { section: 'PHÂN TÍCH', items: [
-        { icon: '📈', label: 'Báo cáo', route: '/reports', permission: 'view_reports' },
+        { icon: '<i data-lucide="chart-line"></i>', label: 'Báo cáo', route: '/reports', permission: 'view_reports' },
       ]},
       { section: 'HỆ THỐNG', items: [
-        { icon: '👥', label: 'Người dùng', route: '/users', permission: 'manage_users' },
-        { icon: '⚙️', label: 'Cài đặt', route: '/settings', permission: 'manage_settings' },
-        { icon: '📖', label: 'Hướng dẫn', route: '/guide', permission: 'view_machines' },
+        { icon: '<i data-lucide="users"></i>', label: 'Người dùng', route: '/users', permission: 'manage_users' },
+        { icon: '<i data-lucide="settings"></i>', label: 'Cài đặt', route: '/settings', permission: 'manage_settings' },
+        { icon: '<i data-lucide="book-open"></i>', label: 'Hướng dẫn', route: '/guide', permission: 'view_machines' },
       ]},
     ];
 
@@ -35,8 +35,11 @@ const Sidebar = {
       <aside class="sidebar ${this.isCollapsed ? 'collapsed' : ''}" id="sidebar">
         <div class="sidebar-header">
           <div class="sidebar-logo">
-            <div class="logo-icon">🔧</div>
-            <span class="logo-text">TRM System</span>
+            <img class="logo-img" src="template/LOGO%20VICO.jpg" alt="VICO">
+            <span class="logo-text">
+              <span class="logo-title">Quản lý sửa chữa</span>
+              <span class="logo-subtitle">Máy công cụ</span>
+            </span>
           </div>
         </div>
         <nav class="sidebar-nav">
@@ -58,7 +61,7 @@ const Sidebar = {
           }).join('')}
         </nav>
         <div class="sidebar-toggle" onclick="Sidebar.toggle()">
-          <span id="sidebar-toggle-icon">${this.isCollapsed ? '▶' : '◀'}</span>
+          <span id="sidebar-toggle-icon">${this._toggleIcon()}</span>
         </div>
       </aside>
       <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="Sidebar.closeMobile()"></div>
@@ -70,7 +73,11 @@ const Sidebar = {
     this.isCollapsed = !this.isCollapsed;
     sidebar.classList.toggle('collapsed', this.isCollapsed);
     Utils.storage.set('sidebar_collapsed', this.isCollapsed);
-    document.getElementById('sidebar-toggle-icon').textContent = this.isCollapsed ? '▶' : '◀';
+    document.getElementById('sidebar-toggle-icon').innerHTML = this._toggleIcon();
+  },
+
+  _toggleIcon() {
+    return `<i data-lucide="${this.isCollapsed ? 'panel-left-open' : 'panel-left-close'}"></i>`;
   },
 
   openMobile() {

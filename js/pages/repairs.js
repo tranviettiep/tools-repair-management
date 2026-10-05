@@ -16,21 +16,24 @@ const RepairsPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>📋 Yêu cầu sửa chữa</h2>
+          <div>
+            <h2>Yêu cầu sửa chữa</h2>
+            <p class="page-subtitle">Theo dõi quy trình: Báo hỏng → Sửa ngoài → Đã về → Đã sửa</p>
+          </div>
           <div class="page-header-actions">
             <div class="view-toggle">
-              <button class="view-toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="RepairsPage.setView('table')">📊 Bảng</button>
-              <button class="view-toggle-btn ${this.viewMode === 'kanban' ? 'active' : ''}" onclick="RepairsPage.setView('kanban')">📌 Kanban</button>
+              <button class="view-toggle-btn ${this.viewMode === 'table' ? 'active' : ''}" onclick="RepairsPage.setView('table')"><i data-lucide="table"></i> Bảng</button>
+              <button class="view-toggle-btn ${this.viewMode === 'kanban' ? 'active' : ''}" onclick="RepairsPage.setView('kanban')"><i data-lucide="kanban"></i> Kanban</button>
             </div>
-            ${Auth.can('create_repair') ? '<button class="btn btn-primary" onclick="RepairsPage.showAddModal()">+ Báo hỏng</button>' : ''}
+            ${Auth.can('create_repair') ? '<button class="btn btn-primary" onclick="RepairsPage.showAddModal()"><i data-lucide="plus"></i> Báo hỏng</button>' : ''}
           </div>
         </div>
 
         <div id="repairs-toolbar">
-          <div class="table-wrapper" style="border-bottom:none;border-radius:var(--radius-lg) var(--radius-lg) 0 0">
+          <div class="table-wrapper" data-join="top">
             <div class="table-toolbar">
               <div class="table-search">
-                <span class="search-icon">🔍</span>
+                <span class="search-icon"><i data-lucide="search"></i></span>
                 <input type="text" placeholder="Tìm mã yêu cầu, tên máy, mô tả..."
                        id="repair-search" oninput="RepairsPage.onSearch(this.value)">
               </div>
@@ -134,9 +137,9 @@ const RepairsPage = {
 
     if (total === 0) {
       container.innerHTML = `
-        <div class="table-wrapper" style="border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+        <div class="table-wrapper" data-join="bottom">
           <div class="empty-state">
-            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-icon"><i data-lucide="clipboard-list"></i></div>
             <div class="empty-state-title">Không có yêu cầu sửa chữa nào</div>
           </div>
         </div>`;
@@ -144,7 +147,7 @@ const RepairsPage = {
     }
 
     container.innerHTML = `
-      <div class="table-wrapper" style="border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+      <div class="table-wrapper" data-join="bottom">
         <table class="data-table">
           <thead>
             <tr>
@@ -161,7 +164,7 @@ const RepairsPage = {
           <tbody>
             ${pageData.map(r => `
               <tr data-id="${r.id}">
-                <td><strong style="color:var(--accent-secondary)">${Utils.escapeHtml(r.id)}</strong></td>
+                <td><strong class="cell-id">${Utils.escapeHtml(r.id)}</strong></td>
                 <td>${Utils.escapeHtml(r.machine_name)}</td>
                 <td>${Utils.escapeHtml(r.department)}</td>
                 <td title="${Utils.escapeHtml(r.fault_description)}">${Utils.truncate(r.fault_description, 40)}</td>
@@ -172,9 +175,9 @@ const RepairsPage = {
                   <div class="action-menu">
                     <button class="action-menu-trigger" onclick="RepairsPage.toggleActions(this)">⋮</button>
                     <div class="action-menu-dropdown">
-                      <div class="action-menu-item" onclick="RepairsPage.showDetail('${r.id}')">👁 Chi tiết</div>
-                      ${r.status === 'Sửa ngoài' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.markReturned('${r.id}')">🔙 Đã về</div>` : ''}
-                      ${r.status !== 'Đã sửa' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.showCompleteModal('${r.id}')">✅ Đã sửa</div>` : ''}
+                      <div class="action-menu-item" onclick="RepairsPage.showDetail('${r.id}')"><i data-lucide="eye"></i> Chi tiết</div>
+                      ${r.status === 'Sửa ngoài' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.markReturned('${r.id}')"><i data-lucide="undo-2"></i> Đã về</div>` : ''}
+                      ${r.status !== 'Đã sửa' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.showCompleteModal('${r.id}')"><i data-lucide="circle-check"></i> Đã sửa</div>` : ''}
                     </div>
                   </div>
                 </td>
@@ -201,10 +204,10 @@ const RepairsPage = {
   renderKanban() {
     const container = document.getElementById('repairs-content');
     const columns = [
-      { status: 'Báo hỏng', icon: '📨', color: 'var(--status-danger)' },
-      { status: 'Sửa ngoài', icon: '🚚', color: 'var(--status-warning)' },
-      { status: 'Đã về', icon: '🔙', color: '#0984e3' },
-      { status: 'Đã sửa', icon: '✅', color: 'var(--status-success)' },
+      { status: 'Báo hỏng', icon: '<i data-lucide="send"></i>', color: 'var(--status-danger)' },
+      { status: 'Sửa ngoài', icon: '<i data-lucide="truck"></i>', color: 'var(--status-warning)' },
+      { status: 'Đã về', icon: '<i data-lucide="undo-2"></i>', color: 'var(--status-info)' },
+      { status: 'Đã sửa', icon: '<i data-lucide="circle-check"></i>', color: 'var(--status-success)' },
     ];
 
     container.innerHTML = `
@@ -228,7 +231,7 @@ const RepairsPage = {
                     <div class="kanban-card-machine">${Utils.escapeHtml(r.machine_name)}</div>
                     <div class="kanban-card-desc">${Utils.escapeHtml(r.fault_description)}</div>
                     <div class="kanban-card-footer">
-                      <span>${r.technician ? '👤 ' + Utils.escapeHtml(r.technician) : ''}</span>
+                      <span>${r.technician ? '<i data-lucide="user"></i> ' + Utils.escapeHtml(r.technician) : ''}</span>
                       <span>${Utils.formatRelativeTime(r.reported_at)}</span>
                     </div>
                   </div>
@@ -291,17 +294,17 @@ const RepairsPage = {
               <tbody id="repair-items-body">
               </tbody>
             </table>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addRepairRow()">+ Thêm dòng</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addRepairRow()"><i data-lucide="plus"></i> Thêm dòng</button>
         </div>
       </form>
     `;
 
     const footer = `
       <button class="btn btn-secondary" data-modal-close>Hủy</button>
-      <button class="btn btn-primary" onclick="RepairsPage.submitRepair()">📨 Gửi báo hỏng</button>
+      <button class="btn btn-primary" onclick="RepairsPage.submitRepair()"><i data-lucide="send"></i> Gửi báo hỏng</button>
     `;
 
-    Modal.show({ title: '🔔 Báo hỏng máy công cụ', content, footer, size: 'lg' });
+    Modal.show({ title: '<i data-lucide="bell"></i> Báo hỏng máy công cụ', content, footer, size: 'lg' });
     
     this.addRepairRow(prefillCode);
     if (prefill) Utils.storage.remove('prefill_repair');
@@ -321,7 +324,7 @@ const RepairsPage = {
         <input type="text" class="form-input r-desc" placeholder="Mô tả tình trạng..." style="width: 100%;">
       </td>
       <td style="text-align: center; vertical-align: middle;">
-        <button type="button" class="btn btn-danger btn-sm" style="padding: 4px 8px;" onclick="RepairsPage.removeRepairRow(this)">✕</button>
+        <button type="button" class="btn btn-ghost entry-remove" onclick="RepairsPage.removeRepairRow(this)" title="Xóa dòng"><i data-lucide="x"></i></button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -412,7 +415,7 @@ const RepairsPage = {
   },
 
   async markReturned(id) {
-    if (!confirm('Xác nhận thiết bị đã được trả về từ đơn vị sửa chữa ngoài?')) return;
+    if (!(await Modal.confirm({ title: 'Thiết bị đã về', message: 'Xác nhận thiết bị đã được trả về từ đơn vị sửa chữa ngoài?', icon: '<i data-lucide="undo-2"></i>', confirmText: 'Xác nhận' }))) return;
     
     Toast.info('Đang cập nhật trạng thái...');
     const result = await API.markRepairReturned(id);
@@ -453,7 +456,7 @@ const RepairsPage = {
         <div class="form-group">
           <label>Vật tư tiêu hao</label>
           <div id="cp-parts"></div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addPartRow()">+ Thêm vật tư</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="RepairsPage.addPartRow()"><i data-lucide="plus"></i> Thêm vật tư</button>
         </div>
         <div class="form-group">
           <label>Ghi chú sửa chữa</label>
@@ -464,10 +467,10 @@ const RepairsPage = {
 
     const footer = `
       <button class="btn btn-secondary" data-modal-close>Hủy</button>
-      <button class="btn btn-success" id="btn-complete-repair">✅ Xác nhận đã sửa</button>
+      <button class="btn btn-success" id="btn-complete-repair"><i data-lucide="circle-check"></i> Xác nhận đã sửa</button>
     `;
 
-    const modal = Modal.show({ title: `✅ Đã sửa - ${Utils.escapeHtml(repair.id)}`, content, footer });
+    const modal = Modal.show({ title: `<i data-lucide="circle-check"></i> Đã sửa - ${Utils.escapeHtml(repair.id)}`, content, footer });
 
     document.getElementById('btn-complete-repair').onclick = async () => {
       const faultCodes = Array.from(document.querySelectorAll('.fc-cb:checked'))
@@ -520,7 +523,7 @@ const RepairsPage = {
           ${options}
         </select>
         <input type="number" class="form-input cp-qty" value="1" min="1" style="flex:1">
-        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">X</button>
+        <button type="button" class="btn btn-ghost entry-remove" onclick="this.parentElement.remove()" title="Xóa dòng"><i data-lucide="x"></i></button>
       </div>`);
   },
 
@@ -541,7 +544,7 @@ const RepairsPage = {
           ${i > 0 ? `<div class="progress-step-line" style="${i <= currentIdx ? 'background:var(--status-success)' : ''}"></div>` : ''}
           <div class="progress-step ${i < currentIdx ? 'completed' : ''} ${i === currentIdx ? 'active' : ''}">
             <div class="progress-step-circle">
-              ${i < currentIdx ? '✓' : i + 1}
+              ${i < currentIdx ? '<i data-lucide="check"></i>' : i + 1}
             </div>
           </div>
         `).join('')}
@@ -553,13 +556,13 @@ const RepairsPage = {
       <!-- Info -->
       <div class="info-grid">
         <div class="info-card">
-          <div class="info-card-title">🔧 Thông tin máy</div>
+          <div class="info-card-title"><i data-lucide="wrench"></i> Thông tin máy</div>
           <div class="info-row"><span class="label">Máy:</span><span class="value">${Utils.escapeHtml(r.machine_name)}</span></div>
           <div class="info-row"><span class="label">Mã máy:</span><span class="value">${Utils.escapeHtml(r.machine_code)}</span></div>
           <div class="info-row"><span class="label">Bộ phận:</span><span class="value">${Utils.escapeHtml(r.department)}</span></div>
         </div>
         <div class="info-card">
-          <div class="info-card-title">📋 Thông tin sửa chữa</div>
+          <div class="info-card-title"><i data-lucide="clipboard-list"></i> Thông tin sửa chữa</div>
           <div class="info-row"><span class="label">KTV:</span><span class="value">${Utils.escapeHtml(r.technician || '—')}</span></div>
           <div class="info-row"><span class="label">Kết thúc:</span><span class="value">${Utils.formatDateTime(r.repair_end)}</span></div>
           <div class="info-row"><span class="label">Chi phí:</span><span class="value fw-600">${Utils.formatCurrency(r.total_cost)}</span></div>
@@ -567,33 +570,33 @@ const RepairsPage = {
       </div>
 
       <div class="info-card mb-md">
-        <div class="info-card-title">📝 Mô tả lỗi</div>
+        <div class="info-card-title"><i data-lucide="file-text"></i> Mô tả lỗi</div>
         <p style="color:var(--text-secondary)">${Utils.escapeHtml(r.fault_description)}</p>
       </div>
 
       ${faultCodes.length ? `
         <div class="info-card mb-md">
-          <div class="info-card-title">⚠️ Nguyên nhân hỏng</div>
+          <div class="info-card-title"><i data-lucide="triangle-alert"></i> Nguyên nhân hỏng</div>
           <p style="color:var(--text-secondary)">${faultCodes.map(c => Utils.escapeHtml(c.code + ' - ' + c.name)).join('<br>')}</p>
         </div>
       ` : ''}
 
       ${partsUsed.length ? `
         <div class="info-card mb-md">
-          <div class="info-card-title">🔩 Vật tư tiêu hao</div>
+          <div class="info-card-title"><i data-lucide="cog"></i> Vật tư tiêu hao</div>
           <p style="color:var(--text-secondary)">${partsUsed.map(p => Utils.escapeHtml(p.part_code + ' - ' + p.part_name) + ' × ' + p.quantity + ' ' + Utils.escapeHtml(p.unit || '')).join('<br>')}</p>
         </div>
       ` : ''}
 
       ${r.repair_notes ? `
         <div class="info-card mb-md">
-          <div class="info-card-title">🔧 Ghi chú sửa chữa</div>
+          <div class="info-card-title"><i data-lucide="wrench"></i> Ghi chú sửa chữa</div>
           <p style="color:var(--text-secondary)">${Utils.escapeHtml(r.repair_notes)}</p>
         </div>
       ` : ''}
 
       <div class="info-card">
-        <div class="info-card-title">📅 Lịch sử</div>
+        <div class="info-card-title"><i data-lucide="calendar"></i> Lịch sử</div>
         <div class="info-row"><span class="label">Báo hỏng bởi:</span><span class="value">${Utils.escapeHtml(r.reported_by)} — ${Utils.formatDateTime(r.reported_at)}</span></div>
         ${r.completed_by ? `<div class="info-row"><span class="label">Đã sửa bởi:</span><span class="value">${Utils.escapeHtml(r.completed_by)} — ${Utils.formatDateTime(r.completed_at)}</span></div>` : ''}
       </div>
@@ -602,14 +605,14 @@ const RepairsPage = {
     // Action buttons based on status
     let footer = '';
     if (r.status === 'Sửa ngoài' && Auth.can('complete_repair')) {
-      footer += `<button class="btn btn-primary" onclick="Modal.closeAll(); RepairsPage.markReturned('${r.id}')">🔙 Đã về</button>`;
+      footer += `<button class="btn btn-primary" onclick="Modal.closeAll(); RepairsPage.markReturned('${r.id}')"><i data-lucide="undo-2"></i> Đã về</button>`;
     }
     if (r.status !== 'Đã sửa' && Auth.can('complete_repair')) {
-      footer += `<button class="btn btn-success" onclick="Modal.closeAll(); RepairsPage.showCompleteModal('${r.id}')">✅ Đã sửa</button>`;
+      footer += `<button class="btn btn-success" onclick="Modal.closeAll(); RepairsPage.showCompleteModal('${r.id}')"><i data-lucide="circle-check"></i> Đã sửa</button>`;
     }
 
     Modal.show({
-      title: `📋 ${Utils.escapeHtml(r.id)}`,
+      title: `<i data-lucide="clipboard-list"></i> ${Utils.escapeHtml(r.id)}`,
       content,
       footer: footer ? `<button class="btn btn-secondary" data-modal-close>Đóng</button>${footer}` : '',
       size: 'lg'

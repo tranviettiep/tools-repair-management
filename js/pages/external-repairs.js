@@ -6,19 +6,22 @@ const ExternalRepairsPage = {
   async render() {
     const container = document.getElementById('page-content');
     container.innerHTML = `
-      <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-        <h2>Quản lý phiếu sửa chữa ngoài</h2>
-        <div style="display:flex; gap: 16px; align-items:center;">
-          <select id="ext-repair-status-filter" class="form-input" onchange="ExternalRepairsPage.filterData()">
-            <option value="">Tất cả trạng thái</option>
-            <option value="Đang sửa">Đang sửa</option>
-            <option value="Hoàn thành">Hoàn thành</option>
-          </select>
-          <button class="btn btn-primary" onclick="ExternalRepairsPage.openModal()">+ Tạo phiếu mới</button>
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h2>Sửa chữa ngoài</h2>
+            <p class="page-subtitle">Quản lý phiếu gửi thiết bị đi sửa chữa tại đơn vị bên ngoài</p>
+          </div>
+          <div class="page-header-actions">
+            <select id="ext-repair-status-filter" class="form-select" style="width:auto" onchange="ExternalRepairsPage.filterData()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="Đang sửa">Đang sửa</option>
+              <option value="Hoàn thành">Hoàn thành</option>
+            </select>
+            <button class="btn btn-primary" onclick="ExternalRepairsPage.openModal()"><i data-lucide="plus"></i> Tạo phiếu mới</button>
+          </div>
         </div>
-      </div>
 
-      <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
@@ -30,7 +33,7 @@ const ExternalRepairsPage = {
               </tr>
             </thead>
             <tbody id="external-repairs-tbody">
-              <tr><td colspan="4" style="text-align:center;">Đang tải...</td></tr>
+              <tr><td colspan="4"><div class="loading-inline"><div class="spinner"></div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -64,22 +67,22 @@ const ExternalRepairsPage = {
     }
     
     if (!displayRepairs || displayRepairs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chưa có phiếu nào</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="truck"></i></div><div class="empty-state-title">Chưa có phiếu nào</div><div class="empty-state-desc">Tạo phiếu mới từ các yêu cầu đang ở trạng thái Báo hỏng</div></div></td></tr>';
       return;
     }
 
     tbody.innerHTML = displayRepairs.map(r => `
       <tr>
-        <td style="font-weight: 500; color: var(--accent-primary);">${r.id}</td>
+        <td><span class="cell-id">${Utils.escapeHtml(r.id)}</span></td>
         <td>${new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
         <td>
           ${Utils.getStatusBadge(r.status)}
         </td>
-        <td style="display: flex; gap: 8px; justify-content: flex-start;">
-          <button class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.openModal('${r.id}')">Xem/Sửa</button>
-          <button class="btn btn-primary btn-sm" onclick="ExternalRepairsPage.generatePDF('${r.id}')">Xuất PDF</button>
-          <button class="btn btn-danger btn-sm" onclick="ExternalRepairsPage.deleteTicket('${r.id}')">Xóa</button>
-        </td>
+        <td><div class="cell-actions">
+          <button class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.openModal('${r.id}')"><i data-lucide="pencil"></i> Xem/Sửa</button>
+          <button class="btn btn-primary btn-sm" onclick="ExternalRepairsPage.generatePDF('${r.id}')"><i data-lucide="file-down"></i> Xuất PDF</button>
+          <button class="btn btn-danger btn-sm" onclick="ExternalRepairsPage.deleteTicket('${r.id}')"><i data-lucide="trash-2"></i> Xóa</button>
+        </div></td>
       </tr>
     `).join('');
   },
@@ -89,7 +92,7 @@ const ExternalRepairsPage = {
   },
 
   async deleteTicket(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa phiếu này?')) return;
+    if (!(await Modal.confirm({ title: 'Xác nhận xóa', message: 'Bạn có chắc chắn muốn xóa phiếu này? Hành động này không thể hoàn tác.', icon: '<i data-lucide="trash-2"></i>', confirmText: 'Xóa', danger: true }))) return;
     const res = await API.request('delete_external_repair', { id }, 'POST');
     if (res.success) {
       Toast.success('Đã xóa phiếu');
@@ -119,12 +122,12 @@ const ExternalRepairsPage = {
     const reportedList = id ? '' : `
       <div class="form-group">
         <label>Chọn phiếu báo hỏng cần sửa ngoài <span class="required">*</span></label>
-        <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-secondary);">
+        <div class="check-list">
           ${this._reported.map(r => `
-            <label style="display:block; padding:8px; border-bottom:1px solid var(--border-color); cursor:pointer;">
-              <input type="checkbox" value="${r.id}" onchange="ExternalRepairsPage.toggleRepair('${r.id}', this.checked)" style="margin-right:8px">
+            <label class="check-list-item">
+              <input type="checkbox" value="${r.id}" onchange="ExternalRepairsPage.toggleRepair('${r.id}', this.checked)">
               <strong>${Utils.escapeHtml(r.id)}</strong> - ${Utils.escapeHtml(r.machine_name)} <span class="text-muted">(${Utils.escapeHtml(r.fault_description || '')})</span>
-            </label>`).join('') || '<div style="padding:10px; color:var(--text-muted)">Không có phiếu nào đang Báo hỏng</div>'}
+            </label>`).join('') || '<div class="check-list-empty">Không có phiếu nào đang Báo hỏng</div>'}
         </div>
       </div>`;
 
@@ -133,10 +136,10 @@ const ExternalRepairsPage = {
       content: `
         ${reportedList}
         <div style="margin-bottom: 16px;">
-          <button class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.addItem()">+ Thêm dòng</button>
+          <button class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.addItem()"><i data-lucide="plus"></i> Thêm dòng</button>
         </div>
-        <div class="table-responsive" style="max-height: 400px; overflow-y:auto;">
-          <table class="table" style="width: 100%; min-width: 900px;">
+        <div class="table-scroll">
+          <table class="data-table data-table-compact" style="min-width: 900px;">
             <thead>
               <tr>
                 <th width="40">TT</th>
@@ -155,7 +158,7 @@ const ExternalRepairsPage = {
       `,
       footer: `
           <button class="btn btn-secondary" onclick="document.querySelector('.modal-overlay.show [data-modal-close]').click()">Hủy</button>
-          <button class="btn btn-primary" onclick="ExternalRepairsPage.saveTicketAndExportPDF()">Xác nhận và xuất PDF</button>
+          <button class="btn btn-primary" onclick="ExternalRepairsPage.saveTicketAndExportPDF()"><i data-lucide="file-down"></i> Xác nhận và xuất PDF</button>
         `,
       size: 'xl'
     });
@@ -223,7 +226,7 @@ const ExternalRepairsPage = {
         <td><input type="text" class="form-input" value="${it.uom || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'uom', this.value)"></td>
         <td><input type="number" class="form-input" value="${it.qty || 1}" onchange="ExternalRepairsPage.updateItem(${idx}, 'qty', this.value)" style="width:60px"></td>
         <td><input type="text" class="form-input" value="${it.note || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'note', this.value)"></td>
-        <td><button class="btn btn-danger btn-sm" onclick="ExternalRepairsPage.removeItem(${idx})">X</button></td>
+        <td><button type="button" class="btn btn-ghost entry-remove" onclick="ExternalRepairsPage.removeItem(${idx})" title="Xóa dòng"><i data-lucide="x"></i></button></td>
       </tr>
     `).join('');
   },

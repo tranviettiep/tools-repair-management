@@ -15,7 +15,7 @@ const Modal = {
       <div class="modal ${size ? 'modal-' + size : ''}">
         <div class="modal-header">
           <h3 class="modal-title">${title}</h3>
-          <button class="modal-close" data-modal-close>✕</button>
+          <button class="modal-close" data-modal-close><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">${content}</div>
         ${footer ? `<div class="modal-footer">${footer}</div>` : ''}
@@ -57,11 +57,11 @@ const Modal = {
   },
 
   // Confirm dialog
-  confirm({ title = 'Xác nhận', message, icon = '⚠️', confirmText = 'Xác nhận', cancelText = 'Hủy', danger = false }) {
+  confirm({ title = 'Xác nhận', message, icon = '<i data-lucide="triangle-alert"></i>', confirmText = 'Xác nhận', cancelText = 'Hủy', danger = false }) {
     return new Promise((resolve) => {
       const content = `
         <div class="confirm-dialog">
-          <div class="confirm-dialog-icon">${icon}</div>
+          <div class="confirm-dialog-icon ${danger ? 'danger' : ''}">${icon}</div>
           <div class="confirm-dialog-title">${Utils.escapeHtml(title)}</div>
           <div class="confirm-dialog-message">${Utils.escapeHtml(message)}</div>
         </div>
@@ -69,7 +69,7 @@ const Modal = {
 
       const footer = `
         <button class="btn btn-secondary" data-action="cancel">${cancelText}</button>
-        <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-action="confirm">${confirmText}</button>
+        <button class="btn ${danger ? 'btn-danger-solid' : 'btn-primary'}" data-action="confirm">${confirmText}</button>
       `;
 
       const modal = this.show({

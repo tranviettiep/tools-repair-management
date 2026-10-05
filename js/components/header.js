@@ -17,13 +17,13 @@ const Header = {
       <header class="app-header" id="app-header">
         <div class="header-left">
           <button class="header-toggle" onclick="Sidebar.openMobile()" id="header-toggle">
-            ☰
+            <i data-lucide="menu"></i>
           </button>
           <h1 class="header-title" id="header-title">Tổng quan</h1>
         </div>
         <div class="header-right">
           <button class="header-notification" id="notification-btn" onclick="Header.toggleNotifications()">
-            🔔
+            <i data-lucide="bell"></i>
             <span class="badge" id="notification-badge" style="display:none">0</span>
           </button>
           <div class="header-user" onclick="Header.toggleUserMenu()">
@@ -36,11 +36,11 @@ const Header = {
         </div>
         <div class="user-dropdown" id="user-dropdown">
           <div class="user-dropdown-item" onclick="Header.showProfile()">
-            👤 Thông tin cá nhân
+            <i data-lucide="user"></i> Thông tin cá nhân
           </div>
           <div class="user-dropdown-divider"></div>
           <div class="user-dropdown-item" onclick="Auth.logout()">
-            🚪 Đăng xuất
+            <i data-lucide="log-out"></i> Đăng xuất
           </div>
         </div>
       </header>
@@ -77,7 +77,7 @@ const Header = {
     };
 
     Modal.show({
-      title: '👤 Thông tin cá nhân',
+      title: '<i data-lucide="user"></i> Thông tin cá nhân',
       content: `
         <div class="info-card">
           <div class="info-row">

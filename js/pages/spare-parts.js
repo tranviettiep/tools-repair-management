@@ -14,17 +14,20 @@ const SparePartsPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>📦 Kho phụ tùng</h2>
+          <div>
+            <h2>Kho phụ tùng</h2>
+            <p class="page-subtitle">Tồn kho, nhập/xuất và đề xuất cấp vật tư</p>
+          </div>
           <div class="page-header-actions">
-            ${Auth.can('manage_parts') ? '<button class="btn btn-primary" onclick="SparePartsPage.showAddModal()">+ Thêm phụ tùng</button>' : ''}
+            ${Auth.can('manage_parts') ? '<button class="btn btn-primary" onclick="SparePartsPage.showAddModal()"><i data-lucide="plus"></i> Thêm phụ tùng</button>' : ''}
           </div>
         </div>
 
         <div class="tabs">
-          <button class="tab active" onclick="SparePartsPage.switchTab('list')">📦 Danh sách</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('import')">📥 Nhập/Xuất kho</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('proposal')">📝 Đề xuất vật tư</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('history')">📋 Lịch sử</button>
+          <button class="tab active" onclick="SparePartsPage.switchTab('list')"><i data-lucide="package"></i> Danh sách</button>
+          <button class="tab" onclick="SparePartsPage.switchTab('import')"><i data-lucide="package-plus"></i> Nhập/Xuất kho</button>
+          <button class="tab" onclick="SparePartsPage.switchTab('proposal')"><i data-lucide="file-text"></i> Đề xuất vật tư</button>
+          <button class="tab" onclick="SparePartsPage.switchTab('history')"><i data-lucide="clipboard-list"></i> Lịch sử</button>
         </div>
 
         <div id="low-stock-alert"></div>
@@ -66,7 +69,7 @@ const SparePartsPage = {
     if (lowStock.length > 0) {
       container.innerHTML = `
         <div class="low-stock-warning">
-          ⚠️ <strong>${lowStock.length} phụ tùng</strong> dưới mức tồn kho tối thiểu:
+          <i data-lucide="triangle-alert"></i> <strong>${lowStock.length} phụ tùng</strong> dưới mức tồn kho tối thiểu:
           ${lowStock.map(p => `<span class="badge badge-urgent">${Utils.escapeHtml(p.part_name)} (${p.quantity}/${p.min_quantity})</span>`).join(' ')}
         </div>
       `;
@@ -90,7 +93,7 @@ const SparePartsPage = {
       <div class="table-wrapper">
         <div class="table-toolbar">
           <div class="table-search">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon"><i data-lucide="search"></i></span>
             <input type="text" placeholder="Tìm phụ tùng..." id="parts-search" oninput="SparePartsPage.onSearch(this.value)">
           </div>
           <div class="table-filters">
@@ -100,7 +103,7 @@ const SparePartsPage = {
             </select>
             <select id="filter-stock" onchange="SparePartsPage.onFilterStock()">
               <option value="">Tất cả</option>
-              <option value="low">⚠️ Sắp hết hàng</option>
+              <option value="low">Sắp hết hàng</option>
             </select>
           </div>
         </div>
@@ -139,16 +142,16 @@ const SparePartsPage = {
   },
 
   _renderPartRows(parts) {
-    if (parts.length === 0) return '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-title">Không tìm thấy phụ tùng</div></div></td></tr>';
+    if (parts.length === 0) return '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="package"></i></div><div class="empty-state-title">Không tìm thấy phụ tùng</div></div></td></tr>';
 
     return parts.map(p => {
       const isLow = p.quantity <= p.min_quantity;
       return `
         <tr>
-          <td><strong style="color:var(--accent-secondary)">${Utils.escapeHtml(p.part_code)}</strong></td>
+          <td><strong class="cell-id">${Utils.escapeHtml(p.part_code)}</strong></td>
           <td>${Utils.escapeHtml(p.part_name)}</td>
           <td>${Utils.escapeHtml(p.category)}</td>
-          <td><span class="${isLow ? 'quantity-warning' : ''}">${p.quantity} ${Utils.escapeHtml(p.unit)}</span>${isLow ? ' ⚠️' : ''}</td>
+          <td><span class="${isLow ? 'quantity-warning' : ''}">${p.quantity} ${Utils.escapeHtml(p.unit)}</span>${isLow ? ' <i data-lucide="triangle-alert"></i>' : ''}</td>
           <td class="text-muted">${p.min_quantity} ${Utils.escapeHtml(p.unit)}</td>
           <td>${Utils.formatCurrency(p.unit_price)}</td>
           <td class="text-muted">${Utils.escapeHtml(p.supplier || '—')}</td>
@@ -156,10 +159,10 @@ const SparePartsPage = {
             <div class="action-menu">
               <button class="action-menu-trigger" onclick="SparePartsPage.toggleActions(this)">⋮</button>
               <div class="action-menu-dropdown">
-                ${Auth.can('manage_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showEditModal('${p.id}')">✏️ Sửa</div>` : ''}
-                ${Auth.can('import_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showImportModal('${p.id}')">📥 Nhập kho</div>` : ''}
-                ${Auth.can('export_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showExportModal('${p.id}')">📤 Xuất kho</div>` : ''}
-                ${Auth.can('manage_parts') ? `<div class="action-menu-item danger" onclick="SparePartsPage.deletePart('${p.id}')">🗑 Xóa</div>` : ''}
+                ${Auth.can('manage_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showEditModal('${p.id}')"><i data-lucide="pencil"></i> Sửa</div>` : ''}
+                ${Auth.can('import_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showImportModal('${p.id}')"><i data-lucide="package-plus"></i> Nhập kho</div>` : ''}
+                ${Auth.can('export_parts') ? `<div class="action-menu-item" onclick="SparePartsPage.showExportModal('${p.id}')"><i data-lucide="package-minus"></i> Xuất kho</div>` : ''}
+                ${Auth.can('manage_parts') ? `<div class="action-menu-item danger" onclick="SparePartsPage.deletePart('${p.id}')"><i data-lucide="trash-2"></i> Xóa</div>` : ''}
               </div>
             </div>
           </td>
@@ -182,7 +185,7 @@ const SparePartsPage = {
       <div class="charts-grid">
         <div class="chart-card">
           <div class="chart-card-header">
-            <span class="chart-card-title">📥 Nhập kho</span>
+            <span class="chart-card-title"><i data-lucide="package-plus"></i> Nhập kho</span>
           </div>
           <form onsubmit="return false">
             <div class="form-group">
@@ -200,12 +203,12 @@ const SparePartsPage = {
               <label>Ghi chú</label>
               <input type="text" class="form-input" id="f-import-notes" placeholder="Lý do nhập kho...">
             </div>
-            <button class="btn btn-primary" onclick="SparePartsPage.doImport()">📥 Nhập kho</button>
+            <button class="btn btn-primary" onclick="SparePartsPage.doImport()"><i data-lucide="package-plus"></i> Nhập kho</button>
           </form>
         </div>
         <div class="chart-card">
           <div class="chart-card-header">
-            <span class="chart-card-title">📤 Xuất kho</span>
+            <span class="chart-card-title"><i data-lucide="package-minus"></i> Xuất kho</span>
           </div>
           <form onsubmit="return false">
             <div class="form-group">
@@ -227,7 +230,7 @@ const SparePartsPage = {
               <label>Ghi chú</label>
               <input type="text" class="form-input" id="f-export-notes" placeholder="Lý do xuất kho...">
             </div>
-            <button class="btn btn-primary" onclick="SparePartsPage.doExport()">📤 Xuất kho</button>
+            <button class="btn btn-primary" onclick="SparePartsPage.doExport()"><i data-lucide="package-minus"></i> Xuất kho</button>
           </form>
         </div>
     </div>
@@ -266,7 +269,7 @@ const SparePartsPage = {
       <div class="table-wrapper">
         <div class="table-toolbar" style="justify-content: space-between;">
           <h3>Danh sách phiếu đề xuất vật tư</h3>
-          <button class="btn btn-primary" onclick="SparePartsPage.openProposalModal()">+ Tạo phiếu đề xuất</button>
+          <button class="btn btn-primary" onclick="SparePartsPage.openProposalModal()"><i data-lucide="plus"></i> Tạo phiếu đề xuất</button>
         </div>
         <table class="data-table">
           <thead>
@@ -295,7 +298,7 @@ const SparePartsPage = {
   },
 
   async deleteProposal(id) {
-    if (!confirm('Xóa phiếu đề xuất này?')) return;
+    if (!(await Modal.confirm({ title: 'Xác nhận xóa', message: 'Xóa phiếu đề xuất này? Hành động này không thể hoàn tác.', icon: '<i data-lucide="trash-2"></i>', confirmText: 'Xóa', danger: true }))) return;
     const res = await API.request('delete_proposal', { id }, 'POST');
     if (res.success) {
       Toast.success('Đã xóa');
@@ -321,7 +324,7 @@ const SparePartsPage = {
     const content = `
       <div style="font-weight:600; margin-bottom:8px; font-size:13px">Danh sách vật tư đề nghị</div>
       <div id="proposal-items"></div>
-      <button class="btn btn-secondary btn-sm" onclick="SparePartsPage.addProposalItem()" style="margin-bottom:16px">+ Thêm vật tư</button>
+      <button class="btn btn-secondary btn-sm" onclick="SparePartsPage.addProposalItem()" style="margin-bottom:16px"><i data-lucide="plus"></i> Thêm vật tư</button>
     `;
 
     const footer = `
@@ -397,36 +400,40 @@ const SparePartsPage = {
     const container = document.getElementById('proposal-items');
     if (!container.querySelector('.proposal-header')) {
       const header = document.createElement('div');
-      header.className = 'proposal-header';
-      header.style.cssText = 'display:grid; grid-template-columns:3fr 80px 80px 130px 90px 36px; gap:6px; margin-bottom:4px; padding:0 2px';
-      header.innerHTML = '<span style="font-size:11px;color:var(--text-muted);font-weight:600">Vật tư</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);font-weight:600">SL yêu cầu</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);font-weight:600">SL tồn kho</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);font-weight:600">Ngày cần có</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);font-weight:600">YC chào giá</span>'
+      header.className = 'proposal-header proposal-grid';
+      header.innerHTML = '<span class="field-caption">Vật tư</span>'
+        + '<span class="field-caption">SL yêu cầu</span>'
+        + '<span class="field-caption">SL tồn kho</span>'
+        + '<span class="field-caption">Ngày cần có</span>'
+        + '<span class="field-caption">YC chào giá</span>'
         + '<span></span>';
       container.appendChild(header);
     }
     const row = document.createElement('div');
-    row.className = 'proposal-entry';
-    row.style.cssText = 'display:grid; grid-template-columns:3fr 80px 80px 130px 90px 36px; gap:6px; margin-bottom:6px; align-items:center';
+    row.className = 'proposal-entry proposal-grid';
     const today = new Date().toISOString().split('T')[0];
     const partOptions = this.parts.map(p =>
       `<option value="${p.id}" data-name="${p.part_name}" data-unit="${p.unit}" data-code="${p.part_code}" data-stock="${p.quantity}">${p.part_code} - ${p.part_name} (Tồn: ${p.quantity})</option>`
     ).join('');
     row.innerHTML = `
-      <select class="form-select p-part-id" required>
-        <option value="">-- Chọn vật tư --</option>
-        ${partOptions}
-      </select>
-      <input type="number" class="form-input p-part-qty" min="1" value="1" required>
-      <input type="number" class="form-input p-part-stock" min="0" value="0">
-      <input type="date" class="form-input p-part-need-date" value="${today}">
-      <select class="form-select p-part-price-req">
-        <option value="">Không</option>
-        <option value="x">Có</option>
-      </select>
-      <button class="btn btn-ghost" onclick="this.closest('.proposal-entry').remove()" style="color:var(--status-danger);padding:0;height:36px;width:36px">✕</button>
+      <div class="pe-field pe-part">
+        <span class="pe-label">Vật tư</span>
+        <select class="form-select p-part-id" required>
+          <option value="">-- Chọn vật tư --</option>
+          ${partOptions}
+        </select>
+      </div>
+      <div class="pe-field"><span class="pe-label">SL yêu cầu</span><input type="number" class="form-input p-part-qty" min="1" value="1" required></div>
+      <div class="pe-field"><span class="pe-label">SL tồn kho</span><input type="number" class="form-input p-part-stock" min="0" value="0"></div>
+      <div class="pe-field"><span class="pe-label">Ngày cần có</span><input type="date" class="form-input p-part-need-date" value="${today}"></div>
+      <div class="pe-field">
+        <span class="pe-label">YC chào giá</span>
+        <select class="form-select p-part-price-req">
+          <option value="">Không</option>
+          <option value="x">Có</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-ghost entry-remove" onclick="this.closest('.proposal-entry').remove()" title="Xóa dòng"><i data-lucide="x"></i></button>
     `;
     row.querySelector('.p-part-id').addEventListener('change', function() {
       const opt = this.options[this.selectedIndex];
@@ -760,14 +767,14 @@ const SparePartsPage = {
             </tr>
           </thead>
           <tbody>
-            ${this.transactions.length === 0 ? '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">Chưa có giao dịch nào</div></div></td></tr>' : ''}
+            ${this.transactions.length === 0 ? '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon"><i data-lucide="clipboard-list"></i></div><div class="empty-state-title">Chưa có giao dịch nào</div></div></td></tr>' : ''}
             ${this.transactions.map(t => `
               <tr>
                 <td class="text-muted">${Utils.formatDateTime(t.performed_at)}</td>
-                <td><span class="badge ${t.type === 'Nhập kho' ? 'badge-active' : 'badge-broken'}">${t.type === 'Nhập kho' ? '📥' : '📤'} ${t.type}</span></td>
+                <td><span class="badge ${t.type === 'Nhập kho' ? 'badge-active' : 'badge-broken'}">${t.type === 'Nhập kho' ? '<i data-lucide="package-plus"></i>' : '<i data-lucide="package-minus"></i>'} ${t.type}</span></td>
                 <td>${Utils.escapeHtml(t.part_name)}</td>
                 <td class="fw-600">${t.quantity}</td>
-                <td>${t.repair_request_id ? `<span style="color:var(--accent-secondary)">${Utils.escapeHtml(t.repair_request_id)}</span>` : '—'}</td>
+                <td>${t.repair_request_id ? `<span class="cell-id">${Utils.escapeHtml(t.repair_request_id)}</span>` : '—'}</td>
                 <td>${Utils.escapeHtml(t.performed_by)}</td>
                 <td class="text-muted">${Utils.escapeHtml(t.notes || '—')}</td>
               </tr>
@@ -877,10 +884,10 @@ const SparePartsPage = {
 
     const footer = `
       <button class="btn btn-secondary" data-modal-close>Hủy</button>
-      <button class="btn btn-primary" onclick="SparePartsPage.savePart('${part?.id || ''}')">💾 ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
+      <button class="btn btn-primary" onclick="SparePartsPage.savePart('${part?.id || ''}')"><i data-lucide="save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
     `;
 
-    Modal.show({ title: isEdit ? '✏️ Sửa phụ tùng' : '📦 Thêm phụ tùng', content, footer });
+    Modal.show({ title: isEdit ? '<i data-lucide="pencil"></i> Sửa phụ tùng' : '<i data-lucide="package"></i> Thêm phụ tùng', content, footer });
   },
 
   async savePart(id) {
@@ -916,7 +923,7 @@ const SparePartsPage = {
     const confirmed = await Modal.confirm({
       title: 'Xóa phụ tùng',
       message: `Xóa "${part?.part_name}"? Hành động này không thể hoàn tác.`,
-      icon: '🗑️',
+      icon: '<i data-lucide="trash-2"></i>',
       confirmText: 'Xóa',
       danger: true
     });

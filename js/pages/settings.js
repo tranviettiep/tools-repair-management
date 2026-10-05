@@ -10,13 +10,16 @@ const SettingsPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>⚙️ Cài đặt hệ thống</h2>
+          <div>
+            <h2>Cài đặt hệ thống</h2>
+            <p class="page-subtitle">Danh mục dùng chung, mã lỗi và thông tin biểu mẫu</p>
+          </div>
         </div>
 
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🔧 Loại máy công cụ</span>
+              <span class="chart-card-title"><i data-lucide="wrench"></i> Loại máy công cụ</span>
             </div>
             <div id="setting-machine-types">
               <div class="loading-inline"><div class="spinner"></div></div>
@@ -25,7 +28,7 @@ const SettingsPage = {
 
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🏭 Bộ phận / Phân xưởng</span>
+              <span class="chart-card-title"><i data-lucide="factory"></i> Bộ phận / Phân xưởng</span>
             </div>
             <div id="setting-departments">
               <div class="loading-inline"><div class="spinner"></div></div>
@@ -36,7 +39,7 @@ const SettingsPage = {
         <div class="charts-grid" style="margin-top:16px">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">📦 Loại phụ tùng</span>
+              <span class="chart-card-title"><i data-lucide="package"></i> Loại phụ tùng</span>
             </div>
             <div id="setting-part-categories">
               <div class="loading-inline"><div class="spinner"></div></div>
@@ -45,13 +48,13 @@ const SettingsPage = {
 
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🔗 Kết nối Backend</span>
+              <span class="chart-card-title"><i data-lucide="link"></i> Kết nối Backend</span>
             </div>
             <div style="padding:8px 0">
               <div class="form-group">
                 <label>Trạng thái cơ sở dữ liệu</label>
-                <div style="padding: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--status-success); border-radius: var(--radius-md); color: var(--status-success); display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.2em">✅</span> <strong>Đã kết nối với Supabase (PostgreSQL)</strong>
+                <div style="padding: 10px; background: var(--success-soft); border: 1px solid var(--success-border); border-radius: var(--radius-md); color: var(--status-success); display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2em"><i data-lucide="circle-check"></i></span> <strong>Đã kết nối với Supabase (PostgreSQL)</strong>
                 </div>
                 <div class="form-hint" style="margin-top: 8px;">Hệ thống đang chạy trên cơ sở dữ liệu Supabase tốc độ cao. URL và mã API đã được bảo mật.</div>
               </div>
@@ -62,10 +65,10 @@ const SettingsPage = {
         <div class="charts-grid" style="margin-top:16px">
           <div class="chart-card" style="grid-column: 1 / -1">
             <div class="chart-card-header">
-              <span class="chart-card-title">⚠️ Mã lỗi theo loại máy</span>
+              <span class="chart-card-title"><i data-lucide="triangle-alert"></i> Mã lỗi theo loại máy</span>
               <div style="display:flex; gap:8px; align-items:center">
                 <select class="form-select" id="fc-filter-type" onchange="SettingsPage.renderFaultCodes()"></select>
-                <button class="btn btn-primary btn-sm" onclick="SettingsPage.showFaultCodeModal()">+ Thêm mã lỗi</button>
+                <button class="btn btn-primary btn-sm" onclick="SettingsPage.showFaultCodeModal()"><i data-lucide="plus"></i> Thêm mã lỗi</button>
               </div>
             </div>
             <div id="setting-fault-codes"></div>
@@ -75,7 +78,7 @@ const SettingsPage = {
         <div class="charts-grid" style="margin-top:16px">
           <div class="chart-card" style="grid-column: 1 / -1">
             <div class="chart-card-header">
-              <span class="chart-card-title">📋 Thông tin biểu mẫu đề nghị vật tư</span>
+              <span class="chart-card-title"><i data-lucide="clipboard-list"></i> Thông tin biểu mẫu đề nghị vật tư</span>
               <span style="font-size:12px; color:var(--text-muted)">Lưu riêng cho từng tài khoản</span>
             </div>
             <div style="padding:8px 0">
@@ -100,7 +103,7 @@ const SettingsPage = {
                 </div>
               </div>
               <div style="border-top:1px solid var(--border-color); margin:12px 0 8px; padding-top:12px">
-                <div style="font-weight:600; font-size:13px; margin-bottom:8px">🖊️ Chữ ký</div>
+                <div style="font-weight:600; font-size:13px; margin-bottom:8px"><i data-lucide="signature"></i> Chữ ký</div>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Người lập phiếu</label>
@@ -132,7 +135,7 @@ const SettingsPage = {
                   </div>
                 </div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="SettingsPage.saveFormSettings()">💾 Lưu thông tin biểu mẫu</button>
+              <button class="btn btn-primary btn-sm" onclick="SettingsPage.saveFormSettings()"><i data-lucide="save"></i> Lưu thông tin biểu mẫu</button>
             </div>
           </div>
         </div>
@@ -214,7 +217,7 @@ const SettingsPage = {
         </div>`,
       footer: `
         <button class="btn btn-secondary" data-modal-close>Hủy</button>
-        <button class="btn btn-primary" id="btn-save-fc">💾 Lưu</button>`
+        <button class="btn btn-primary" id="btn-save-fc"><i data-lucide="save"></i> Lưu</button>`
     });
 
     document.getElementById('btn-save-fc').onclick = async () => {
@@ -242,7 +245,7 @@ const SettingsPage = {
   },
 
   async deleteFaultCode(id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa mã lỗi này?')) return;
+    if (!(await Modal.confirm({ title: 'Xác nhận xóa', message: 'Bạn có chắc chắn muốn xóa mã lỗi này?', icon: '<i data-lucide="trash-2"></i>', confirmText: 'Xóa', danger: true }))) return;
     const codes = this._getConfigValue('fault_codes', []).filter(c => c.id !== id);
     await API.updateConfig('fault_codes', JSON.stringify(codes));
     await this.loadData();
@@ -261,12 +264,12 @@ const SettingsPage = {
         ${items.map((item, i) => `
           <div style="display:flex;align-items:center;gap:8px">
             <span style="flex:1;padding:6px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm)">${Utils.escapeHtml(item)}</span>
-            <button class="btn btn-ghost btn-sm" onclick="SettingsPage.removeItem('${configKey}', ${i})" style="color:var(--status-danger);min-width:30px">✕</button>
+            <button class="btn btn-ghost btn-sm" onclick="SettingsPage.removeItem('${configKey}', ${i})" style="color:var(--status-danger);min-width:30px"><i data-lucide="x"></i></button>
           </div>
         `).join('')}
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
           <input type="text" class="form-input" id="new-${configKey}" placeholder="${placeholder}" style="flex:1">
-          <button class="btn btn-secondary btn-sm" onclick="SettingsPage.addItem('${configKey}')">+ Thêm</button>
+          <button class="btn btn-secondary btn-sm" onclick="SettingsPage.addItem('${configKey}')"><i data-lucide="plus"></i> Thêm</button>
         </div>
       </div>
     `;

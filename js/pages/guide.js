@@ -4,9 +4,12 @@ const GuidePage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>📖 Hướng dẫn sử dụng</h2>
+          <div>
+            <h2>Hướng dẫn sử dụng</h2>
+            <p class="page-subtitle">Tài liệu thao tác cho từng chức năng của hệ thống</p>
+          </div>
         </div>
-        <div class="card" style="padding: 24px; overflow-y: auto; max-height: calc(100vh - 120px);">
+        <div class="card card-padded guide-card">
           <div id="guide-content" class="markdown-body">
             <div class="loading-inline"><div class="spinner"></div> Đang tải hướng dẫn...</div>
           </div>

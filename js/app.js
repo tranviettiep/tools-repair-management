@@ -17,6 +17,13 @@ const App = {
     // Initialize toast
     Toast.init();
 
+    Mobile.init();
+    this.initDomEnhancers();
+    if (typeof Chart !== 'undefined') {
+      Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+      Chart.defaults.color = Utils.chartTheme.tick;
+    }
+
     // Check authentication
     const isLoggedIn = await Auth.init();
 
@@ -30,6 +37,32 @@ const App = {
 
     // Start router
     Router.init();
+  },
+
+  // Pages render markup as strings, so post-process the DOM whenever it changes:
+  // convert <i data-lucide> tags to SVG icons and label table cells for the mobile card layout.
+  initDomEnhancers() {
+    // Observer callbacks run before paint, so icons never flash empty.
+    // Both steps skip work that is already done, so the follow-up callback they trigger stops.
+    const enhance = () => {
+      if (typeof lucide !== 'undefined' && document.querySelector('i[data-lucide]')) lucide.createIcons();
+      Mobile.labelTables();
+    };
+    enhance();
+    new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
+  },
+
+  // Floating "Báo hỏng" button on phones: the repair form needs the machine list loaded by the Repairs page
+  async quickReport() {
+    if (Router.getPath() !== '/repairs') {
+      Router.navigate('/repairs');
+      for (let i = 0; i < 40 && !RepairsPage.machines.length; i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    } else if (!RepairsPage.machines.length) {
+      await RepairsPage.loadData();
+    }
+    RepairsPage.showAddModal();
   },
 
   registerRoutes() {
@@ -51,26 +84,26 @@ const App = {
         <div class="login-bg"></div>
         <div class="login-card">
           <div class="login-logo">
-            <div class="logo-icon">🔧</div>
-            <h1>TOOLS REPAIR</h1>
-            <p>Hệ thống quản lý sửa chữa máy công cụ</p>
+            <img class="logo-img" src="template/LOGO%20VICO.jpg" alt="VICO">
+            <h1>Quản lý sửa chữa máy công cụ</h1>
+            <p>Đăng nhập để tiếp tục</p>
           </div>
           <div class="login-error" id="login-error"></div>
           <form class="login-form" onsubmit="App.handleLogin(event)">
             <div class="form-group">
               <div class="form-input-icon">
-                <span class="icon">👤</span>
+                <span class="icon"><i data-lucide="user"></i></span>
                 <input type="text" class="form-input" id="login-username" placeholder="Tên đăng nhập" required autofocus>
               </div>
             </div>
             <div class="form-group">
               <div class="form-input-icon">
-                <span class="icon">🔒</span>
+                <span class="icon"><i data-lucide="lock"></i></span>
                 <input type="password" class="form-input" id="login-password" placeholder="Mật khẩu" required>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg btn-block" id="login-btn" onclick="Utils.addRipple(event)">
-              ĐĂNG NHẬP
+              Đăng nhập
             </button>
           </form>
           <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:0.8rem">
@@ -108,7 +141,7 @@ const App = {
       errorEl.textContent = result.error || 'Đăng nhập thất bại';
       errorEl.classList.add('show');
       btn.disabled = false;
-      btn.textContent = 'ĐĂNG NHẬP';
+      btn.textContent = 'Đăng nhập';
     }
   },
 
@@ -121,6 +154,10 @@ const App = {
           <div id="page-content"></div>
         </div>
       </div>
+      ${Auth.can('create_repair') ? `
+        <button class="fab" onclick="App.quickReport()" aria-label="Báo hỏng máy">
+          <i data-lucide="plus"></i><span>Báo hỏng</span>
+        </button>` : ''}
     `;
   },
 
