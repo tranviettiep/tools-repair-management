@@ -22,6 +22,9 @@ const Header = {
           <h1 class="header-title" id="header-title">Tổng quan</h1>
         </div>
         <div class="header-right">
+          <button class="header-notification" onclick="App.toggleTheme()" id="theme-toggle-btn" title="Chế độ Giao diện">
+            <i data-lucide="${Utils.storage.get('app_theme') === 'dark' ? 'sun' : 'moon'}" id="theme-icon"></i>
+          </button>
           <button class="header-notification" id="notification-btn" onclick="Header.toggleNotifications()">
             <i data-lucide="bell"></i>
             <span class="badge" id="notification-badge" style="display:none">0</span>

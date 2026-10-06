@@ -4,6 +4,11 @@
 
 const App = {
   async init() {
+    // Initialize theme
+    const theme = Utils.storage.get('app_theme');
+    if (theme === 'dark') {
+      document.body.setAttribute('data-theme', 'dark');
+    }
     // Restore backend config
     const savedUrl = Utils.storage.get('gas_url');
     if (savedUrl) API.BASE_URL = savedUrl;
@@ -192,6 +197,23 @@ const App = {
 
     // Close mobile sidebar after navigation
     Sidebar.closeMobile();
+  },
+
+  toggleTheme() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const icon = document.getElementById('theme-icon');
+    if (isDark) {
+      document.body.removeAttribute('data-theme');
+      Utils.storage.set('app_theme', 'light');
+      if (icon) icon.setAttribute('data-lucide', 'moon');
+    } else {
+      document.body.setAttribute('data-theme', 'dark');
+      Utils.storage.set('app_theme', 'dark');
+      if (icon) icon.setAttribute('data-lucide', 'sun');
+    }
+    if (window.lucide) {
+      lucide.createIcons();
+    }
   }
 };
 

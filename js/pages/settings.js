@@ -68,7 +68,7 @@ const SettingsPage = {
               <span class="chart-card-title"><i data-lucide="triangle-alert"></i> Mã lỗi theo loại máy</span>
               <div style="display:flex; gap:8px; align-items:center">
                 <select class="form-select" id="fc-filter-type" onchange="SettingsPage.renderFaultCodes()"></select>
-                <button class="btn btn-primary btn-sm" onclick="SettingsPage.showFaultCodeModal()"><i data-lucide="plus"></i> Thêm mã lỗi</button>
+                <button class="btn btn-primary btn-sm" onclick="SettingsPage.showFaultCodeModal()" style="white-space: nowrap; flex-shrink: 0;"><i data-lucide="plus"></i> Thêm mã lỗi</button>
               </div>
             </div>
             <div id="setting-fault-codes"></div>
