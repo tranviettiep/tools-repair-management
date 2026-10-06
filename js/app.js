@@ -23,6 +23,7 @@ const App = {
     Toast.init();
 
     Mobile.init();
+    Pwa.init();
     this.initDomEnhancers();
     if (typeof Chart !== 'undefined') {
       Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
@@ -156,6 +157,7 @@ const App = {
         ${Sidebar.render()}
         <div class="main-content">
           ${Header.render()}
+          ${Pwa.hintHtml()}
           <div id="page-content"></div>
         </div>
       </div>
@@ -164,6 +166,7 @@ const App = {
           <i data-lucide="plus"></i><span>Báo hỏng</span>
         </button>` : ''}
     `;
+    Notifications.start();
   },
 
   renderPage(pageName) {

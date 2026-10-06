@@ -25,7 +25,10 @@ const Header = {
           <button class="header-notification" onclick="App.toggleTheme()" id="theme-toggle-btn" title="Chế độ Giao diện">
             <i data-lucide="${Utils.storage.get('app_theme') === 'dark' ? 'sun' : 'moon'}" id="theme-icon"></i>
           </button>
-          <button class="header-notification" id="notification-btn" onclick="Header.toggleNotifications()">
+          <button class="header-notification" id="notification-btn" onclick="Notifications.togglePanel()" aria-label="Thông báo">
+            <i data-lucide="bell"></i>
+            <span class="badge" id="notification-badge" style="display:none">0</span>
+          </button>
             <i data-lucide="bell"></i>
             <span class="badge" id="notification-badge" style="display:none">0</span>
           </button>
@@ -37,9 +40,13 @@ const Header = {
             </div>
           </div>
         </div>
+        <div class="notification-panel" id="notification-panel"></div>
         <div class="user-dropdown" id="user-dropdown">
           <div class="user-dropdown-item" onclick="Header.showProfile()">
             <i data-lucide="user"></i> Thông tin cá nhân
+          </div>
+          <div class="user-dropdown-item" data-install-item onclick="Pwa.install()" style="${Pwa.isInstalled() ? 'display:none' : ''}">
+            <i data-lucide="smartphone"></i> Cài app lên điện thoại
           </div>
           <div class="user-dropdown-divider"></div>
           <div class="user-dropdown-item" onclick="Auth.logout()">
@@ -52,6 +59,7 @@ const Header = {
 
   toggleUserMenu() {
     const dropdown = document.getElementById('user-dropdown');
+    document.getElementById('notification-panel')?.classList.remove('show');
     dropdown.classList.toggle('show');
 
     // Close on click outside
@@ -64,10 +72,6 @@ const Header = {
       };
       setTimeout(() => document.addEventListener('click', closeHandler), 0);
     }
-  },
-
-  toggleNotifications() {
-    Toast.info('Không có thông báo mới');
   },
 
   showProfile() {

@@ -54,7 +54,7 @@ const Sidebar = {
                      onclick="Router.navigate('${item.route}')">
                   <span class="nav-icon">${item.icon}</span>
                   <span class="nav-label">${item.label}</span>
-                  ${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}
+                  ${item.badge !== undefined ? `<span class="nav-badge" style="display:none"></span>` : ''}
                 </div>
               `).join('')}
             `;

@@ -118,7 +118,8 @@ const API = {
       if (filters.status) query = query.eq('status', filters.status);
       if (filters.priority) query = query.eq('priority', filters.priority);
       if (filters.department) query = query.eq('department', filters.department);
-      
+      if (filters.machine_id) query = query.eq('machine_id', filters.machine_id);
+
       const { data, error } = await query.order('reported_at', { ascending: false });
       if (error) throw error;
       

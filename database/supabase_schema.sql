@@ -130,3 +130,7 @@ INSERT INTO config (key, value, description) VALUES
 ('departments', '["Phân xưởng A", "Phân xưởng B", "Phân xưởng C", "Phân xưởng D"]', 'Danh sách bộ phận'),
 ('part_categories', '["Điện", "Cơ khí", "Mài", "Đục", "Cắt", "Khoan", "Bôi trơn"]', 'Danh sách loại phụ tùng'),
 ('fault_codes', '[{"id":"fc-1","code":"E01","name":"Hỏng motor","machine_type":"Máy mài tay"},{"id":"fc-2","code":"E02","name":"Mòn đá mài","machine_type":"Máy mài tay"}]', 'Danh sách mã lỗi');
+
+-- Realtime: cho phép app nhận thay đổi của bảng repairs ngay lập tức (chuông thông báo, tự cập nhật danh sách).
+-- Chạy 1 lần trong Supabase SQL Editor. Nếu chưa chạy, app vẫn tự kiểm tra lại mỗi 60 giây.
+ALTER PUBLICATION supabase_realtime ADD TABLE repairs;
