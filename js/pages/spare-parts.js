@@ -978,9 +978,9 @@ const SparePartsPage = {
       title: '🔗 Link Nhà Cung Cấp',
       content: `
         <div class="form-group" style="display:flex; gap:8px;">
-          <input type="text" class="form-input" id="supplier-name" placeholder="Tên nhà cung cấp">
-          <input type="text" class="form-input" id="supplier-url" placeholder="https://..." style="flex:2">
-          <button class="btn btn-primary" onclick="SparePartsPage.addSupplierLink()">Thêm</button>
+          <input type="text" class="form-input" id="supplier-name" placeholder="Tên nhà cung cấp" style="flex: 1; min-width: 0;">
+          <input type="text" class="form-input" id="supplier-url" placeholder="Link website (https://...)" style="flex: 2; min-width: 0;">
+          <button class="btn btn-primary" onclick="SparePartsPage.addSupplierLink()" style="flex-shrink: 0;">Thêm</button>
         </div>
         <div class="table-wrapper" style="max-height: 400px; overflow-y: auto; margin-top: 16px;">
           <table class="data-table">
