@@ -27,6 +27,10 @@ const Header = {
           </button>
         </div>
         <div class="header-right">
+          <button class="header-notification header-theme-toggle" id="theme-toggle-btn" onclick="ThemeManager.toggle()"
+                  title="${ThemeManager.isDark() ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}">
+            <i data-lucide="${ThemeManager.isDark() ? 'sun' : 'moon'}"></i>
+          </button>
           <button class="header-notification" id="notification-btn" onclick="Notifications.togglePanel()" aria-label="Thông báo">
             <i data-lucide="bell"></i>
             <span class="badge" id="notification-badge" style="display:none">0</span>

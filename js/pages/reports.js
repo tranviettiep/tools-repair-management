@@ -165,7 +165,7 @@ const ReportsPage = {
         datasets: [{
           data: data.map(d => d.count),
           backgroundColor: colors.slice(0, data.length),
-          borderColor: '#ffffff',
+          borderColor: Utils.chartTheme.surface,
           borderWidth: 3,
           hoverOffset: 8
         }]

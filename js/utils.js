@@ -10,6 +10,7 @@ const Utils = {
     grid: '#e9ecef',
     tick: '#6c757d',
     legend: '#495057',
+    surface: '#ffffff',
     palette: ['#3f6ad8', '#16aaff', '#f7b924', '#3ac47d', '#d92550', '#794c8a', '#6c757d'],
     statusColors: {
       'Hoạt động': '#3ac47d',

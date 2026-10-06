@@ -14,6 +14,7 @@ const App = {
        API.MOCK_MODE = true; 
     }
 
+    ThemeManager.init();
     CommandPalette.init();
 
     // Initialize toast

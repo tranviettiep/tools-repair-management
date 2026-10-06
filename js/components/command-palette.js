@@ -292,6 +292,15 @@ const CommandPalette = {
       });
     }
 
+    const dark = ThemeManager.isDark();
+    actionItems.push({
+      icon: dark ? 'sun' : 'moon',
+      title: dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối',
+      hint: 'Giao diện',
+      keywords: 'che do toi sang dark light theme giao dien ban dem',
+      action: () => ThemeManager.toggle()
+    });
+
     // Profile action
     actionItems.push({
       id: 'act-profile',

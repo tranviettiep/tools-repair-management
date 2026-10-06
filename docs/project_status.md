@@ -6,11 +6,12 @@
 ---
 
 ## 1. Các hạng mục ĐÃ hoàn thành (Done)
-*   **Kiến trúc & Giao diện (UI/UX - 06/10/2026):** Giao diện **phong cách ArchitectUI** viết bằng CSS riêng (`css/style.css`, không dùng thư viện CSS): chỉ có giao diện sáng (đã bỏ chế độ tối và `theme.js`), chữ hệ thống Segoe UI, màu chính `#3f6ad8` trên nền `#f1f4f6`, thẻ không viền có bóng mờ.
+*   **Kiến trúc & Giao diện (UI/UX - 06/10/2026):** Giao diện **phong cách ArchitectUI** viết bằng CSS riêng (`css/style.css`, không dùng thư viện CSS): có **giao diện sáng và tối**, chữ hệ thống Segoe UI, màu chính `#3f6ad8` trên nền `#f1f4f6`, thẻ không viền có bóng mờ.
     *   Menu trái có **menu con** (`js/components/sidebar.js`): *Sửa chữa* → Yêu cầu / Sửa chữa ngoài; *Kho phụ tùng* → Danh sách / Nhập-Xuất / Đề xuất / Lịch sử (mở đúng tab). Thu gọn hoặc máy tính bảng: chỉ hiện icon, bấm mục cha mở trang đầu tiên.
     *   **Khối tiêu đề trang** có ô icon lớn: tự gắn qua `App.decoratePageHeader()` theo bảng `App.pageIcons` — trang mới chỉ cần thêm 1 dòng vào bảng này.
     *   Thẻ số liệu nền chuyển màu, tiêu đề thẻ chữ in hoa, bảng sọc, badge màu đặc, tab có vạch dưới, phân trang liền khối.
     *   **Tìm nhanh Ctrl+K** (`js/components/command-palette.js`): tìm trang, thao tác, máy, phiếu sửa chữa, phụ tùng; gõ không dấu vẫn tìm được; bấm kết quả sẽ mở trang và chờ dữ liệu tải xong rồi mở chi tiết (phụ tùng: lọc danh sách theo mã).
+    *   **Chế độ tối** (`js/components/theme.js`): nút mặt trăng/mặt trời trên thanh đầu trang hoặc gõ "toi" trong Ctrl+K. Lưu lựa chọn trong `app_theme`; chưa chọn thì theo cài đặt sáng/tối của điện thoại/máy tính. `index.html` đọc lựa chọn trước khi vẽ trang nên không bị nháy trắng. Màu tối là bộ biến `:root[data-theme="dark"]` đầu `css/style.css` — khi thêm màu mới hãy dùng biến, đừng viết cứng mã màu.
     *   Màu biểu đồ dùng chung `Utils.chartTheme` (bảng màu ArchitectUI).
 *   **Tối ưu điện thoại (05/10/2026):** `js/components/mobile.js` tự gắn nhãn cột (`data-label`) cho mọi bảng `.data-table`/`.table` → dưới 768px mỗi dòng hiển thị thành thẻ; menu ⋮ mở dạng bảng trượt từ dưới; hộp thoại lớn mở toàn màn hình; ô nhập 16px (tránh iPhone tự phóng to), nút ≥ 40px; nút nổi "Báo hỏng" (`App.quickReport()`). Khi thêm bảng mới chỉ cần dùng class `data-table` có `<thead>` là tự hỗ trợ điện thoại.
 *   **Tính năng mới (06/10/2026):**

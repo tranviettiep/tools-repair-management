@@ -191,7 +191,7 @@ const DashboardPage = {
         datasets: [{
           data: values,
           backgroundColor: colors,
-          borderColor: '#ffffff',
+          borderColor: Utils.chartTheme.surface,
           borderWidth: 3,
           hoverOffset: 8
         }]
