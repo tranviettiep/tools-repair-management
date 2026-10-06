@@ -26,16 +26,19 @@ const MachinesPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>🔧 Máy công cụ</h2>
+          <div>
+            <h2>Máy công cụ</h2>
+            <p class="page-subtitle">Danh mục máy, vị trí và trạng thái hoạt động</p>
+          </div>
           <div class="page-header-actions">
-            ${Auth.can('create_machine') ? '<button class="btn btn-primary" onclick="MachinesPage.showAddModal()">+ Thêm máy mới</button>' : ''}
+            ${Auth.can('create_machine') ? '<button class="btn btn-primary" onclick="MachinesPage.showAddModal()"><i data-lucide="plus"></i> Thêm máy mới</button>' : ''}
           </div>
         </div>
 
         <div class="table-wrapper">
           <div class="table-toolbar">
             <div class="table-search">
-              <span class="search-icon">🔍</span>
+              <span class="search-icon"><i data-lucide="search"></i></span>
               <input type="text" placeholder="Tìm theo mã máy, tên máy..."
                      id="machine-search" oninput="MachinesPage.onSearch(this.value)">
             </div>
@@ -147,7 +150,7 @@ const MachinesPage = {
     if (total === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🔧</div>
+          <div class="empty-state-icon"><i data-lucide="wrench"></i></div>
           <div class="empty-state-title">Không tìm thấy máy nào</div>
           <div class="empty-state-desc">Thử thay đổi bộ lọc hoặc thêm máy mới</div>
         </div>
@@ -173,7 +176,7 @@ const MachinesPage = {
           ${pageData.map(m => `
             <tr data-id="${m.id}">
               <td><input type="checkbox" class="table-checkbox row-checkbox" value="${m.id}"></td>
-              <td><strong style="color:var(--accent-secondary)">${Utils.escapeHtml(m.machine_code)}</strong></td>
+              <td><strong class="cell-id">${Utils.escapeHtml(m.machine_code)}</strong></td>
               <td>${Utils.escapeHtml(m.machine_type)}</td>
               <td>${Utils.escapeHtml(m.machine_name)}</td>
               <td>${Utils.escapeHtml(m.location)}</td>
@@ -183,10 +186,10 @@ const MachinesPage = {
                 <div class="action-menu">
                   <button class="action-menu-trigger" onclick="MachinesPage.toggleActions(this)">⋮</button>
                   <div class="action-menu-dropdown">
-                    <div class="action-menu-item" onclick="MachinesPage.showDetail('${m.id}')">👁 Xem chi tiết</div>
-                    ${Auth.can('edit_machine') ? `<div class="action-menu-item" onclick="MachinesPage.showEditModal('${m.id}')">✏️ Sửa</div>` : ''}
-                    ${Auth.can('create_repair') ? `<div class="action-menu-item" onclick="MachinesPage.reportFault('${m.id}')">🔔 Báo hỏng</div>` : ''}
-                    ${Auth.can('delete_machine') ? `<div class="action-menu-item danger" onclick="MachinesPage.deleteMachine('${m.id}')">🗑 Xóa</div>` : ''}
+                    <div class="action-menu-item" onclick="MachinesPage.showDetail('${m.id}')"><i data-lucide="eye"></i> Xem chi tiết</div>
+                    ${Auth.can('edit_machine') ? `<div class="action-menu-item" onclick="MachinesPage.showEditModal('${m.id}')"><i data-lucide="pencil"></i> Sửa</div>` : ''}
+                    ${Auth.can('create_repair') ? `<div class="action-menu-item" onclick="MachinesPage.reportFault('${m.id}')"><i data-lucide="bell"></i> Báo hỏng</div>` : ''}
+                    ${Auth.can('delete_machine') ? `<div class="action-menu-item danger" onclick="MachinesPage.deleteMachine('${m.id}')"><i data-lucide="trash-2"></i> Xóa</div>` : ''}
                   </div>
                 </div>
               </td>
@@ -256,7 +259,7 @@ const MachinesPage = {
 
   _showMachineForm(machine) {
     const isEdit = !!machine;
-    const title = isEdit ? '✏️ Sửa thông tin máy' : '🔧 Thêm máy mới';
+    const title = isEdit ? '<i data-lucide="pencil"></i> Sửa thông tin máy' : '<i data-lucide="wrench"></i> Thêm máy mới';
 
     let content = '';
     if (isEdit) {
@@ -310,14 +313,14 @@ const MachinesPage = {
       content = `
       <form id="machine-form" onsubmit="return false">
         <div id="machine-entries"></div>
-        <button class="btn btn-secondary btn-sm" onclick="MachinesPage.addMachineRow()" style="margin-top:10px">+ Thêm thiết bị</button>
+        <button class="btn btn-secondary btn-sm" onclick="MachinesPage.addMachineRow()" style="margin-top:10px"><i data-lucide="plus"></i> Thêm thiết bị</button>
       </form>
       `;
     }
 
     const footer = `
       <button class="btn btn-secondary" data-modal-close>Hủy</button>
-      <button class="btn btn-primary" onclick="MachinesPage.saveMachine('${machine?.id || ''}')">💾 ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
+      <button class="btn btn-primary" onclick="MachinesPage.saveMachine('${machine?.id || ''}')"><i data-lucide="save"></i> ${isEdit ? 'Cập nhật' : 'Thêm mới'}</button>
     `;
 
     Modal.show({ title, content, footer, size: isEdit ? 'md' : 'lg' });
@@ -328,31 +331,31 @@ const MachinesPage = {
     const container = document.getElementById('machine-entries');
     const row = document.createElement('div');
     row.className = 'machine-entry';
-    row.style.cssText = 'padding:16px; border:1px solid var(--border-color); border-radius:8px; margin-bottom:12px; display:flex; flex-wrap:wrap; gap:12px; position:relative; background:var(--bg-secondary)';
+    row.classList.add('entry-card');
     row.innerHTML = `
       <div style="flex:1; min-width:180px">
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Mã máy *</label>
+        <label class="field-caption">Mã máy *</label>
         <input type="text" class="form-input f-machine-code" required>
       </div>
       <div style="flex:1; min-width:180px">
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Tên máy *</label>
+        <label class="field-caption">Tên máy *</label>
         <input type="text" class="form-input f-machine-name" required>
       </div>
       <div style="flex:1; min-width:150px">
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Loại máy *</label>
+        <label class="field-caption">Loại máy *</label>
         <select class="form-select f-machine-type" required>
           <option value="">-- Chọn --</option>
           ${this._getConfigValue('machine_types', []).map(t => `<option value="${Utils.escapeHtml(t)}">${Utils.escapeHtml(t)}</option>`).join('')}
         </select>
       </div>
       <div style="flex:1; min-width:150px">
-        <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block">Bộ phận *</label>
+        <label class="field-caption">Bộ phận *</label>
         <select class="form-select f-department" required>
           <option value="">-- Chọn --</option>
           ${this._getConfigValue('departments', []).map(d => `<option value="${Utils.escapeHtml(d)}">${Utils.escapeHtml(d)}</option>`).join('')}
         </select>
       </div>
-      <button class="btn btn-ghost" onclick="this.parentElement.remove()" style="color:var(--status-danger); position:absolute; top:-10px; right:-10px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:50%; width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; font-size:12px">✕</button>
+      <button type="button" class="btn btn-ghost entry-remove entry-remove-corner" onclick="this.parentElement.remove()" title="Xóa dòng"><i data-lucide="x"></i></button>
     `;
     container.appendChild(row);
   },
@@ -443,7 +446,7 @@ const MachinesPage = {
     if (!m) return;
 
     Modal.show({
-      title: `🔧 ${Utils.escapeHtml(m.machine_code)}`,
+      title: `<i data-lucide="wrench"></i> ${Utils.escapeHtml(m.machine_code)}`,
       content: `
         <div class="info-card">
           <div class="info-row"><span class="label">Mã máy:</span><span class="value">${Utils.escapeHtml(m.machine_code)}</span></div>

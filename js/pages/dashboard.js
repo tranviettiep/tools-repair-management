@@ -10,7 +10,10 @@ const DashboardPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>📊 Tổng quan</h2>
+          <div>
+            <h2>Tổng quan</h2>
+            <p class="page-subtitle">Tình hình máy móc và sửa chữa trong toàn nhà máy</p>
+          </div>
         </div>
 
         <!-- KPI Cards -->
@@ -25,7 +28,7 @@ const DashboardPage = {
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">📊 Số lượng sửa chữa theo tháng</span>
+              <span class="chart-card-title"><i data-lucide="chart-column"></i> Số lượng sửa chữa theo tháng</span>
             </div>
             <div class="chart-container">
               <canvas id="monthly-chart"></canvas>
@@ -33,7 +36,7 @@ const DashboardPage = {
           </div>
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🍩 Trạng thái máy</span>
+              <span class="chart-card-title"><i data-lucide="chart-pie"></i> Trạng thái máy</span>
             </div>
             <div class="chart-container">
               <canvas id="status-chart"></canvas>
@@ -45,14 +48,14 @@ const DashboardPage = {
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">📋 Yêu cầu sửa chữa gần đây</span>
+              <span class="chart-card-title"><i data-lucide="clipboard-list"></i> Yêu cầu sửa chữa gần đây</span>
               <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/repairs')">Xem tất cả →</button>
             </div>
             <div id="recent-repairs-table"></div>
           </div>
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">⚠️ Phụ tùng sắp hết</span>
+              <span class="chart-card-title"><i data-lucide="triangle-alert"></i> Phụ tùng sắp hết</span>
               <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/spare-parts')">Xem tất cả →</button>
             </div>
             <div id="low-stock-table"></div>
@@ -84,7 +87,7 @@ const DashboardPage = {
     grid.innerHTML = `
       <div class="stat-card total">
         <div class="stat-card-header">
-          <div class="stat-card-icon">🔧</div>
+          <div class="stat-card-icon"><i data-lucide="wrench"></i></div>
           <span class="stat-card-change neutral">Tổng cộng</span>
         </div>
         <div class="stat-card-value" id="stat-total">${data.totalMachines}</div>
@@ -92,7 +95,7 @@ const DashboardPage = {
       </div>
       <div class="stat-card broken">
         <div class="stat-card-header">
-          <div class="stat-card-icon">⚠️</div>
+          <div class="stat-card-icon"><i data-lucide="triangle-alert"></i></div>
           <span class="stat-card-change up">Cần xử lý</span>
         </div>
         <div class="stat-card-value" id="stat-broken">${data.broken}</div>
@@ -100,7 +103,7 @@ const DashboardPage = {
       </div>
       <div class="stat-card repairing">
         <div class="stat-card-header">
-          <div class="stat-card-icon">🔨</div>
+          <div class="stat-card-icon"><i data-lucide="hammer"></i></div>
           <span class="stat-card-change neutral">Đang tiến hành</span>
         </div>
         <div class="stat-card-value" id="stat-repairing">${data.repairing}</div>
@@ -108,7 +111,7 @@ const DashboardPage = {
       </div>
       <div class="stat-card completed">
         <div class="stat-card-header">
-          <div class="stat-card-icon">✅</div>
+          <div class="stat-card-icon"><i data-lucide="circle-check"></i></div>
           <span class="stat-card-change down">Tháng này</span>
         </div>
         <div class="stat-card-value" id="stat-completed">${data.completedThisMonth}</div>
@@ -140,9 +143,9 @@ const DashboardPage = {
         datasets: [{
           label: 'Số lượng sửa chữa',
           data: monthlyData.map(d => d.count),
-          backgroundColor: 'rgba(108, 92, 231, 0.6)',
-          borderColor: '#6c5ce7',
-          borderWidth: 1,
+          backgroundColor: Utils.chartTheme.primary,
+          hoverBackgroundColor: Utils.chartTheme.primaryHover,
+          borderWidth: 0,
           borderRadius: 6,
           barPercentage: 0.6,
         }]
@@ -153,23 +156,17 @@ const DashboardPage = {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#2a2a4a',
-            titleColor: '#e8e8f0',
-            bodyColor: '#a0a0b8',
-            borderColor: '#333355',
-            borderWidth: 1,
-            cornerRadius: 8,
-            padding: 12,
+            ...Utils.chartTheme.tooltip,
           }
         },
         scales: {
           x: {
-            grid: { color: 'rgba(51,51,85,0.3)' },
-            ticks: { color: '#a0a0b8' }
+            grid: { color: Utils.chartTheme.grid },
+            ticks: { color: Utils.chartTheme.tick }
           },
           y: {
-            grid: { color: 'rgba(51,51,85,0.3)' },
-            ticks: { color: '#a0a0b8' },
+            grid: { color: Utils.chartTheme.grid },
+            ticks: { color: Utils.chartTheme.tick },
             beginAtZero: true
           }
         }
@@ -185,7 +182,7 @@ const DashboardPage = {
 
     const labels = Object.keys(statusDist);
     const values = Object.values(statusDist);
-    const colors = ['#00b894', '#e17055', '#fdcb6e', '#74b9ff', '#6c6c80'];
+    const colors = labels.map(l => Utils.chartTheme.statusColors[l] || Utils.chartTheme.palette[6]);
 
     this.charts.status = new Chart(ctx, {
       type: 'doughnut',
@@ -194,7 +191,7 @@ const DashboardPage = {
         datasets: [{
           data: values,
           backgroundColor: colors,
-          borderColor: '#1a1a2e',
+          borderColor: '#ffffff',
           borderWidth: 3,
           hoverOffset: 8
         }]
@@ -207,7 +204,7 @@ const DashboardPage = {
           legend: {
             position: 'right',
             labels: {
-              color: '#a0a0b8',
+              color: Utils.chartTheme.legend,
               padding: 16,
               usePointStyle: true,
               pointStyleWidth: 12,
@@ -215,13 +212,7 @@ const DashboardPage = {
             }
           },
           tooltip: {
-            backgroundColor: '#2a2a4a',
-            titleColor: '#e8e8f0',
-            bodyColor: '#a0a0b8',
-            borderColor: '#333355',
-            borderWidth: 1,
-            cornerRadius: 8,
-            padding: 12,
+            ...Utils.chartTheme.tooltip,
           }
         }
       }
@@ -231,7 +222,7 @@ const DashboardPage = {
   renderRecentRepairs(repairs) {
     const container = document.getElementById('recent-repairs-table');
     if (!repairs || repairs.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">Chưa có yêu cầu nào</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i data-lucide="clipboard-list"></i></div><div class="empty-state-title">Chưa có yêu cầu nào</div></div>';
       return;
     }
 
@@ -249,7 +240,7 @@ const DashboardPage = {
         <tbody>
           ${repairs.map(r => `
             <tr class="cursor-pointer" onclick="Router.navigate('/repairs')">
-              <td><strong style="color:var(--accent-secondary)">${Utils.escapeHtml(r.id)}</strong></td>
+              <td><strong class="cell-id">${Utils.escapeHtml(r.id)}</strong></td>
               <td>${Utils.escapeHtml(r.machine_name)}</td>
               <td>${Utils.getPriorityBadge(r.priority)}</td>
               <td>${Utils.getStatusBadge(r.status)}</td>
@@ -264,7 +255,7 @@ const DashboardPage = {
   renderLowStock(parts) {
     const container = document.getElementById('low-stock-table');
     if (!parts || parts.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-title">Tồn kho ổn định</div><div class="empty-state-desc">Tất cả phụ tùng trên mức tối thiểu</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i data-lucide="circle-check"></i></div><div class="empty-state-title">Tồn kho ổn định</div><div class="empty-state-desc">Tất cả phụ tùng trên mức tối thiểu</div></div>';
       return;
     }
 

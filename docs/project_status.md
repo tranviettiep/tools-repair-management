@@ -6,7 +6,8 @@
 ---
 
 ## 1. Các hạng mục ĐÃ hoàn thành (Done)
-*   **Kiến trúc & Giao diện (UI/UX):** Đã chốt và triển khai toàn bộ giao diện Dark Mode theo chuẩn `01-architecture.md` và `02-ui-design.md`. 
+*   **Kiến trúc & Giao diện (UI/UX):** ~~Dark Mode~~ → **(05/10/2026) Chuyển sang giao diện sáng (Light theme)**: bảng màu xanh dương công nghiệp `#2563eb` trên nền `#f4f6fa`, toàn bộ màu nằm trong biến CSS ở `css/style.css`; thay emoji bằng icon **Lucide** (`<i data-lucide="tên-icon">`, tự render qua `App.initIcons()`); logo VICO ở sidebar & trang đăng nhập; màu biểu đồ dùng chung `Utils.chartTheme`; hộp thoại xác nhận dùng `Modal.confirm` thay `confirm()` của trình duyệt.
+*   **Tối ưu điện thoại (05/10/2026):** `js/components/mobile.js` tự gắn nhãn cột (`data-label`) cho mọi bảng `.data-table`/`.table` → dưới 768px mỗi dòng hiển thị thành thẻ; menu ⋮ mở dạng bảng trượt từ dưới; hộp thoại lớn mở toàn màn hình; ô nhập 16px (tránh iPhone tự phóng to), nút ≥ 40px; nút nổi "Báo hỏng" (`App.quickReport()`). Khi thêm bảng mới chỉ cần dùng class `data-table` có `<thead>` là tự hỗ trợ điện thoại.
 *   **Frontend (SPA - HTML/CSS/Vanilla JS):**
     *   Hoàn thiện toàn bộ các trang: Dashboard, Quản lý Máy, Sửa chữa, Kho phụ tùng, Báo cáo, Người dùng, Cài đặt.
     *   Xây dựng hệ thống Mock API để chạy thử nghiệm trực tiếp trên trình duyệt (Chế độ Demo).

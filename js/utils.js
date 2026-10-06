@@ -3,6 +3,32 @@
 // ============================================
 
 const Utils = {
+  // Chart.js colors for the light theme (keep in sync with css/style.css tokens)
+  chartTheme: {
+    primary: '#2563eb',
+    primaryHover: '#1d4ed8',
+    grid: '#eef2f7',
+    tick: '#64748b',
+    legend: '#475569',
+    palette: ['#2563eb', '#0ea5e9', '#f59e0b', '#16a34a', '#dc2626', '#8b5cf6', '#94a3b8'],
+    statusColors: {
+      'Hoạt động': '#16a34a',
+      'Báo hỏng': '#dc2626',
+      'Sửa ngoài': '#f59e0b',
+      'Đã về': '#0ea5e9',
+      'Đã sửa': '#2563eb',
+      'Ngừng sử dụng': '#94a3b8',
+    },
+    tooltip: {
+      backgroundColor: '#0f172a',
+      titleColor: '#ffffff',
+      bodyColor: '#e2e8f0',
+      borderWidth: 0,
+      cornerRadius: 8,
+      padding: 12,
+    },
+  },
+
   // Generate unique ID
   generateId(prefix = '') {
     const timestamp = Date.now().toString(36);
@@ -116,11 +142,11 @@ const Utils = {
   // Get priority badge HTML
   getPriorityBadge(priority) {
     const map = {
-      'Khẩn cấp': { class: 'badge-urgent', icon: '🔴' },
-      'Bình thường': { class: 'badge-normal', icon: '🟡' },
-      'Thấp': { class: 'badge-low', icon: '🟢' },
+      'Khẩn cấp': { class: 'badge-urgent', icon: '<span class="badge-dot"></span>' },
+      'Bình thường': { class: 'badge-normal', icon: '<span class="badge-dot"></span>' },
+      'Thấp': { class: 'badge-low', icon: '<span class="badge-dot"></span>' },
     };
-    const info = map[priority] || { class: 'badge-normal', icon: '⚪' };
+    const info = map[priority] || { class: 'badge-normal', icon: '<span class="badge-dot"></span>' };
     return `<span class="badge ${info.class}">${info.icon} ${Utils.escapeHtml(priority || '—')}</span>`;
   },
 

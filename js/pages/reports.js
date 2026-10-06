@@ -10,10 +10,13 @@ const ReportsPage = {
     container.innerHTML = `
       <div class="page-content">
         <div class="page-header">
-          <h2>📈 Báo cáo & Thống kê</h2>
+          <div>
+            <h2>Báo cáo & Thống kê</h2>
+            <p class="page-subtitle">Chi phí, tần suất hỏng và hiệu quả sửa chữa</p>
+          </div>
           <div class="page-header-actions">
-            <button class="btn btn-secondary" onclick="ReportsPage.exportExcel()">📥 Xuất Excel</button>
-            <button class="btn btn-secondary" onclick="ReportsPage.exportPDF()">📄 Xuất PDF</button>
+            <button class="btn btn-secondary" onclick="ReportsPage.exportExcel()"><i data-lucide="file-spreadsheet"></i> Xuất Excel</button>
+            <button class="btn btn-secondary" onclick="ReportsPage.exportPDF()"><i data-lucide="file-text"></i> Xuất PDF</button>
           </div>
         </div>
 
@@ -21,7 +24,7 @@ const ReportsPage = {
         <div class="report-grid">
           <div class="chart-card report-full-width">
             <div class="chart-card-header">
-              <span class="chart-card-title">💰 Chi phí sửa chữa theo tháng</span>
+              <span class="chart-card-title"><i data-lucide="coins"></i> Chi phí sửa chữa theo tháng</span>
             </div>
             <div class="chart-container" style="height:300px">
               <canvas id="cost-chart"></canvas>
@@ -33,13 +36,13 @@ const ReportsPage = {
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🔧 Top 10 máy hỏng nhiều nhất</span>
+              <span class="chart-card-title"><i data-lucide="wrench"></i> Top 10 máy hỏng nhiều nhất</span>
             </div>
             <div id="top-machines-chart" style="padding:8px 0"></div>
           </div>
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🍩 Tỷ lệ hỏng theo loại máy</span>
+              <span class="chart-card-title"><i data-lucide="chart-pie"></i> Tỷ lệ hỏng theo loại máy</span>
             </div>
             <div class="chart-container" style="height:300px">
               <canvas id="type-chart"></canvas>
@@ -77,9 +80,9 @@ const ReportsPage = {
         datasets: [{
           label: 'Chi phí (₫)',
           data: data.map(d => d.cost),
-          backgroundColor: 'rgba(108, 92, 231, 0.5)',
-          borderColor: '#6c5ce7',
-          borderWidth: 1,
+          backgroundColor: Utils.chartTheme.primary,
+          hoverBackgroundColor: Utils.chartTheme.primaryHover,
+          borderWidth: 0,
           borderRadius: 6,
           barPercentage: 0.5,
         }]
@@ -90,23 +93,18 @@ const ReportsPage = {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#2a2a4a',
-            titleColor: '#e8e8f0',
-            bodyColor: '#a0a0b8',
-            borderColor: '#333355',
-            borderWidth: 1,
-            cornerRadius: 8,
+            ...Utils.chartTheme.tooltip,
             callbacks: {
               label: (ctx) => ' ' + Utils.formatCurrency(ctx.raw)
             }
           }
         },
         scales: {
-          x: { grid: { color: 'rgba(51,51,85,0.3)' }, ticks: { color: '#a0a0b8' } },
+          x: { grid: { color: Utils.chartTheme.grid }, ticks: { color: Utils.chartTheme.tick } },
           y: {
-            grid: { color: 'rgba(51,51,85,0.3)' },
+            grid: { color: Utils.chartTheme.grid },
             ticks: {
-              color: '#a0a0b8',
+              color: Utils.chartTheme.legend,
               callback: (v) => Utils.formatNumber(v) + ' ₫'
             },
             beginAtZero: true
@@ -157,7 +155,7 @@ const ReportsPage = {
     if (!ctx) return;
     if (this.charts.type) this.charts.type.destroy();
 
-    const colors = ['#6c5ce7', '#00cec9', '#e17055', '#fdcb6e', '#00b894', '#a855f7', '#74b9ff'];
+    const colors = Utils.chartTheme.palette;
 
     this.charts.type = new Chart(ctx, {
       type: 'doughnut',
@@ -166,7 +164,7 @@ const ReportsPage = {
         datasets: [{
           data: data.map(d => d.count),
           backgroundColor: colors.slice(0, data.length),
-          borderColor: '#1a1a2e',
+          borderColor: '#ffffff',
           borderWidth: 3,
           hoverOffset: 8
         }]
@@ -179,19 +177,14 @@ const ReportsPage = {
           legend: {
             position: 'right',
             labels: {
-              color: '#a0a0b8',
+              color: Utils.chartTheme.legend,
               padding: 12,
               usePointStyle: true,
               font: { size: 12 }
             }
           },
           tooltip: {
-            backgroundColor: '#2a2a4a',
-            titleColor: '#e8e8f0',
-            bodyColor: '#a0a0b8',
-            borderColor: '#333355',
-            borderWidth: 1,
-            cornerRadius: 8,
+            ...Utils.chartTheme.tooltip,
           }
         }
       }
