@@ -5,19 +5,19 @@
 const Utils = {
   // Chart.js colors for the light theme (keep in sync with css/style.css tokens)
   chartTheme: {
-    primary: '#2563eb',
-    primaryHover: '#1d4ed8',
-    grid: '#eef2f7',
-    tick: '#64748b',
-    legend: '#475569',
-    palette: ['#2563eb', '#0ea5e9', '#f59e0b', '#16a34a', '#dc2626', '#8b5cf6', '#94a3b8'],
+    primary: '#3f6ad8',
+    primaryHover: '#2955c8',
+    grid: '#e9ecef',
+    tick: '#6c757d',
+    legend: '#495057',
+    palette: ['#3f6ad8', '#16aaff', '#f7b924', '#3ac47d', '#d92550', '#794c8a', '#6c757d'],
     statusColors: {
-      'Hoạt động': '#16a34a',
-      'Báo hỏng': '#dc2626',
-      'Sửa ngoài': '#f59e0b',
-      'Đã về': '#0ea5e9',
-      'Đã sửa': '#2563eb',
-      'Ngừng sử dụng': '#94a3b8',
+      'Hoạt động': '#3ac47d',
+      'Báo hỏng': '#d92550',
+      'Sửa ngoài': '#f7b924',
+      'Đã về': '#16aaff',
+      'Đã sửa': '#3f6ad8',
+      'Ngừng sử dụng': '#6c757d',
     },
     tooltip: {
       backgroundColor: '#0f172a',

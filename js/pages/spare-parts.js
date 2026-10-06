@@ -26,10 +26,10 @@ const SparePartsPage = {
         </div>
 
         <div class="tabs">
-          <button class="tab active" onclick="SparePartsPage.switchTab('list')"><i data-lucide="package"></i> Danh sách</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('import')"><i data-lucide="package-plus"></i> Nhập/Xuất kho</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('proposal')"><i data-lucide="file-text"></i> Đề xuất vật tư</button>
-          <button class="tab" onclick="SparePartsPage.switchTab('history')"><i data-lucide="clipboard-list"></i> Lịch sử</button>
+          <button class="tab ${this.activeTab === 'list' ? 'active' : ''}" onclick="SparePartsPage.switchTab('list')"><i data-lucide="package"></i> Danh sách</button>
+          <button class="tab ${this.activeTab === 'import' ? 'active' : ''}" onclick="SparePartsPage.switchTab('import')"><i data-lucide="package-plus"></i> Nhập/Xuất kho</button>
+          <button class="tab ${this.activeTab === 'proposal' ? 'active' : ''}" onclick="SparePartsPage.switchTab('proposal')"><i data-lucide="file-text"></i> Đề xuất vật tư</button>
+          <button class="tab ${this.activeTab === 'history' ? 'active' : ''}" onclick="SparePartsPage.switchTab('history')"><i data-lucide="clipboard-list"></i> Lịch sử</button>
         </div>
 
         <div id="low-stock-alert"></div>
@@ -65,6 +65,7 @@ const SparePartsPage = {
       }
     }
 
+    if (!document.getElementById('parts-content')) return; // user left the page before data arrived
     this.renderLowStockAlert();
     this.renderContent();
   },
@@ -74,6 +75,7 @@ const SparePartsPage = {
     document.querySelectorAll('.tab').forEach((t, i) => {
       t.classList.toggle('active', ['list', 'import', 'proposal', 'history'][i] === tab);
     });
+    Sidebar.syncActive();
     this.renderContent();
   },
 

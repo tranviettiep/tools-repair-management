@@ -116,6 +116,7 @@ const ReportsPage = {
 
   renderTopMachines(data) {
     const container = document.getElementById('top-machines-chart');
+    if (!container) return; // user left the page before data arrived
     if (!data || data.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-title">Chưa có dữ liệu</div></div>';
       return;

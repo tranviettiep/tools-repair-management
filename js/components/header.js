@@ -20,6 +20,11 @@ const Header = {
             <i data-lucide="menu"></i>
           </button>
           <h1 class="header-title" id="header-title">Tổng quan</h1>
+          <button class="header-search-trigger" onclick="CommandPalette.open()" id="cmd-trigger">
+            <i data-lucide="search"></i>
+            <span>Tìm kiếm nhanh…</span>
+            <kbd>Ctrl K</kbd>
+          </button>
         </div>
         <div class="header-right">
           <button class="header-notification" id="notification-btn" onclick="Notifications.togglePanel()" aria-label="Thông báo">
@@ -98,15 +103,14 @@ const Header = {
             <span class="value">${Utils.escapeHtml(user.department || 'Tất cả')}</span>
           </div>
           <div class="info-row">
-            <span class="label">Email:</span>
-            <span class="value">${Utils.escapeHtml(user.email || '—')}</span>
+            <span class="label">Trạng thái:</span>
+            <span class="value"><span class="badge badge-active"><span class="badge-dot"></span> Đang hoạt động</span></span>
           </div>
         </div>
       `,
-      size: 'sm'
+      size: 'sm',
+      footer: `<button class="btn btn-secondary" data-modal-close>Đóng</button>`
     });
-
-    document.getElementById('user-dropdown').classList.remove('show');
   },
 
   updateNotificationBadge(count) {

@@ -71,9 +71,7 @@ const Router = {
     }
 
     // Update sidebar active
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.route === path);
-    });
+    if (typeof Sidebar !== 'undefined') Sidebar.syncActive();
 
     // Render page
     route.handler();

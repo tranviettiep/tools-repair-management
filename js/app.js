@@ -14,6 +14,8 @@ const App = {
        API.MOCK_MODE = true; 
     }
 
+    CommandPalette.init();
+
     // Initialize toast
     Toast.init();
 
@@ -21,7 +23,7 @@ const App = {
     Pwa.init();
     this.initDomEnhancers();
     if (typeof Chart !== 'undefined') {
-      Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+      Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
       Chart.defaults.color = Utils.chartTheme.tick;
     }
 
@@ -46,11 +48,35 @@ const App = {
     // Observer callbacks run before paint, so icons never flash empty.
     // Both steps skip work that is already done, so the follow-up callback they trigger stops.
     const enhance = () => {
+      this.decoratePageHeader();
       if (typeof lucide !== 'undefined' && document.querySelector('i[data-lucide]')) lucide.createIcons();
       Mobile.labelTables();
     };
     enhance();
     new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
+  },
+
+  // ArchitectUI page title block: large icon box left of the page heading
+  pageIcons: {
+    '/dashboard': ['layout-dashboard', 'primary'],
+    '/machines': ['wrench', 'info'],
+    '/repairs': ['clipboard-list', 'danger'],
+    '/external-repairs': ['truck', 'warning'],
+    '/spare-parts': ['package', 'success'],
+    '/reports': ['chart-line', 'alternate'],
+    '/users': ['users', 'primary'],
+    '/settings': ['settings', 'dark'],
+    '/guide': ['book-open', 'info'],
+  },
+
+  decoratePageHeader() {
+    const header = document.querySelector('.page-content > .page-header:not(.has-icon)');
+    const titleBox = header?.firstElementChild;
+    const icon = this.pageIcons[Router.getPath()];
+    if (!titleBox || !icon) return;
+    header.classList.add('has-icon');
+    titleBox.insertAdjacentHTML('afterbegin',
+      `<div class="page-title-icon tone-${icon[1]}"><i data-lucide="${icon[0]}"></i></div>`);
   },
 
   // Floating "Báo hỏng" button on phones: the repair form needs the machine list loaded by the Repairs page
@@ -174,11 +200,7 @@ const App = {
     if (typeof DashboardPage !== 'undefined' && DashboardPage.destroy) DashboardPage.destroy();
     if (typeof ReportsPage !== 'undefined' && ReportsPage.destroy) ReportsPage.destroy();
 
-    // Update sidebar active state
-    const path = '/' + pageName;
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.route === path);
-    });
+    Sidebar.syncActive();
 
     // Render the page
     switch (pageName) {

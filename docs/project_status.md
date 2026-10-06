@@ -6,7 +6,12 @@
 ---
 
 ## 1. Các hạng mục ĐÃ hoàn thành (Done)
-*   **Kiến trúc & Giao diện (UI/UX):** ~~Dark Mode~~ → **(05/10/2026) Chuyển sang giao diện sáng (Light theme)**: bảng màu xanh dương công nghiệp `#2563eb` trên nền `#f4f6fa`, toàn bộ màu nằm trong biến CSS ở `css/style.css`; thay emoji bằng icon **Lucide** (`<i data-lucide="tên-icon">`, tự render qua `App.initIcons()`); logo VICO ở sidebar & trang đăng nhập; màu biểu đồ dùng chung `Utils.chartTheme`; hộp thoại xác nhận dùng `Modal.confirm` thay `confirm()` của trình duyệt.
+*   **Kiến trúc & Giao diện (UI/UX - 06/10/2026):** Giao diện **phong cách ArchitectUI** viết bằng CSS riêng (`css/style.css`, không dùng thư viện CSS): chỉ có giao diện sáng (đã bỏ chế độ tối và `theme.js`), chữ hệ thống Segoe UI, màu chính `#3f6ad8` trên nền `#f1f4f6`, thẻ không viền có bóng mờ.
+    *   Menu trái có **menu con** (`js/components/sidebar.js`): *Sửa chữa* → Yêu cầu / Sửa chữa ngoài; *Kho phụ tùng* → Danh sách / Nhập-Xuất / Đề xuất / Lịch sử (mở đúng tab). Thu gọn hoặc máy tính bảng: chỉ hiện icon, bấm mục cha mở trang đầu tiên.
+    *   **Khối tiêu đề trang** có ô icon lớn: tự gắn qua `App.decoratePageHeader()` theo bảng `App.pageIcons` — trang mới chỉ cần thêm 1 dòng vào bảng này.
+    *   Thẻ số liệu nền chuyển màu, tiêu đề thẻ chữ in hoa, bảng sọc, badge màu đặc, tab có vạch dưới, phân trang liền khối.
+    *   **Tìm nhanh Ctrl+K** (`js/components/command-palette.js`): tìm trang, thao tác, máy, phiếu sửa chữa, phụ tùng; gõ không dấu vẫn tìm được; bấm kết quả sẽ mở trang và chờ dữ liệu tải xong rồi mở chi tiết (phụ tùng: lọc danh sách theo mã).
+    *   Màu biểu đồ dùng chung `Utils.chartTheme` (bảng màu ArchitectUI).
 *   **Tối ưu điện thoại (05/10/2026):** `js/components/mobile.js` tự gắn nhãn cột (`data-label`) cho mọi bảng `.data-table`/`.table` → dưới 768px mỗi dòng hiển thị thành thẻ; menu ⋮ mở dạng bảng trượt từ dưới; hộp thoại lớn mở toàn màn hình; ô nhập 16px (tránh iPhone tự phóng to), nút ≥ 40px; nút nổi "Báo hỏng" (`App.quickReport()`). Khi thêm bảng mới chỉ cần dùng class `data-table` có `<thead>` là tự hỗ trợ điện thoại.
 *   **Tính năng mới (06/10/2026):**
     *   **Thông báo** (`js/components/notifications.js`): chuông + số trên menu Sửa chữa = số phiếu đang *Báo hỏng*; bấm chuông xem danh sách và mở phiếu. Tự cập nhật qua Supabase Realtime (cần chạy `ALTER PUBLICATION supabase_realtime ADD TABLE repairs;` — cuối file `database/supabase_schema.sql`), dự phòng kiểm tra lại mỗi 60 giây.
