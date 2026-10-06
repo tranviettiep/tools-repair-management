@@ -1,0 +1,17 @@
+{
+  "name": "Quản lý sửa chữa máy công cụ - VICO",
+  "short_name": "Sửa chữa VICO",
+  "description": "Báo hỏng, theo dõi sửa chữa và quản lý kho phụ tùng máy công cụ",
+  "lang": "vi",
+  "start_url": "./#/dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6fa",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

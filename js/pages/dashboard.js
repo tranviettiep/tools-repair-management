@@ -278,6 +278,12 @@ const DashboardPage = {
           `).join('')}
         </tbody>
       </table>
+      ${Auth.can('view_parts') ? `
+        <div class="card-action">
+          <button class="btn btn-primary btn-block" onclick="SparePartsPage.proposeLowStock()">
+            <i data-lucide="file-plus"></i> Tạo đề xuất vật tư cho ${parts.length} mục này
+          </button>
+        </div>` : ''}
     `;
   },
 

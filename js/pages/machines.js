@@ -441,15 +441,14 @@ const MachinesPage = {
     }
   },
 
-  showDetail(id) {
+  async showDetail(id) {
     const m = this.machines.find(m => m.id === id);
     if (!m) return;
 
-    Modal.show({
+    const modal = Modal.show({
       title: `<i data-lucide="wrench"></i> ${Utils.escapeHtml(m.machine_code)}`,
       content: `
-        <div class="info-card">
-          <div class="info-row"><span class="label">Mã máy:</span><span class="value">${Utils.escapeHtml(m.machine_code)}</span></div>
+        <div class="info-card mb-md">
           <div class="info-row"><span class="label">Loại máy:</span><span class="value">${Utils.escapeHtml(m.machine_type)}</span></div>
           <div class="info-row"><span class="label">Hãng sản xuất:</span><span class="value">${Utils.escapeHtml(m.machine_name || '—')}</span></div>
           <div class="info-row"><span class="label">Model:</span><span class="value">${Utils.escapeHtml(m.location || '—')}</span></div>
@@ -457,11 +456,81 @@ const MachinesPage = {
           <div class="info-row"><span class="label">Trạng thái:</span><span class="value">${Utils.getStatusBadge(m.status)}</span></div>
           <div class="info-row"><span class="label">Ghi chú:</span><span class="value">${Utils.escapeHtml(m.notes || '—')}</span></div>
           <div class="info-row"><span class="label">Ngày tạo:</span><span class="value">${Utils.formatDate(m.created_at)}</span></div>
-          <div class="info-row"><span class="label">Cập nhật:</span><span class="value">${Utils.formatDateTime(m.updated_at)}</span></div>
         </div>
+        <div class="section-title"><i data-lucide="history"></i> Lịch sử sửa chữa</div>
+        <div id="machine-history"><div class="loading-inline"><div class="spinner"></div></div></div>
       `,
-      size: 'sm'
+      footer: Auth.can('create_repair')
+        ? `<button class="btn btn-primary" onclick="Modal.closeAll(); MachinesPage.reportFault('${m.id}')"><i data-lucide="bell"></i> Báo hỏng máy này</button>`
+        : '',
+      size: 'lg'
     });
+
+    const result = await API.getRepairs({ machine_id: m.id });
+    const container = modal.element.querySelector('#machine-history');
+    if (!container) return; // modal closed while loading
+    container.innerHTML = result.success
+      ? this._renderHistory(result.data)
+      : `<div class="empty-state-desc text-danger">Không tải được lịch sử: ${Utils.escapeHtml(result.error)}</div>`;
+  },
+
+  // Repair history for one machine: totals, most frequent faults and a timeline of every request
+  _renderHistory(repairs) {
+    if (!repairs.length) {
+      return `<div class="empty-state">
+        <div class="empty-state-icon"><i data-lucide="circle-check"></i></div>
+        <div class="empty-state-title">Chưa từng hỏng</div>
+        <div class="empty-state-desc">Máy này chưa có yêu cầu sửa chữa nào</div>
+      </div>`;
+    }
+
+    const parseList = v => { try { return typeof v === 'string' ? JSON.parse(v || '[]') : (v || []); } catch { return []; } };
+    const totalCost = repairs.reduce((sum, r) => sum + (Number(r.total_cost) || 0), 0);
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const recentCount = repairs.filter(r => new Date(r.reported_at).getTime() >= ninetyDaysAgo).length;
+
+    const faultCount = {};
+    repairs.forEach(r => parseList(r.fault_codes).forEach(c => {
+      const key = c.code + ' - ' + c.name;
+      faultCount[key] = (faultCount[key] || 0) + 1;
+    }));
+    const topFaults = Object.entries(faultCount).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    return `
+      ${recentCount >= 3 ? `
+        <div class="alert alert-warning">
+          <i data-lucide="triangle-alert"></i>
+          <span>Máy hỏng <strong>${recentCount} lần trong 90 ngày</strong> gần đây. Nên kiểm tra bảo dưỡng tổng thể hoặc cân nhắc thay mới.</span>
+        </div>` : ''}
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="mini-stat-value">${repairs.length}</div><div class="mini-stat-label">Lần hỏng</div></div>
+        <div class="mini-stat"><div class="mini-stat-value">${Utils.formatCurrency(totalCost)}</div><div class="mini-stat-label">Tổng chi phí vật tư</div></div>
+        <div class="mini-stat"><div class="mini-stat-value">${Utils.formatDate(repairs[0].reported_at)}</div><div class="mini-stat-label">Hỏng gần nhất</div></div>
+      </div>
+      ${topFaults.length ? `
+        <div class="mb-md">
+          <span class="field-caption">Lỗi hay gặp</span>
+          <div class="chip-list">${topFaults.map(([name, n]) => `<span class="chip">${Utils.escapeHtml(name)} <strong>×${n}</strong></span>`).join('')}</div>
+        </div>` : ''}
+      <div class="timeline">
+        ${repairs.map(r => {
+          const faults = parseList(r.fault_codes);
+          const parts = parseList(r.parts_used);
+          return `
+            <div class="timeline-item">
+              <div class="timeline-head">
+                <span class="cell-id">${Utils.escapeHtml(r.id)}</span>
+                ${Utils.getStatusBadge(r.status)}
+              </div>
+              <div class="timeline-meta">Báo hỏng ${Utils.formatDate(r.reported_at)}${r.completed_at ? ' · Sửa xong ' + Utils.formatDate(r.completed_at) : ''}${r.technician ? ' · ' + Utils.escapeHtml(r.technician) : ''}</div>
+              ${r.fault_description ? `<div class="timeline-text">${Utils.escapeHtml(r.fault_description)}</div>` : ''}
+              ${faults.length ? `<div class="timeline-text"><span class="text-muted">Nguyên nhân:</span> ${faults.map(c => Utils.escapeHtml(c.code + ' - ' + c.name)).join(', ')}</div>` : ''}
+              ${parts.length ? `<div class="timeline-text"><span class="text-muted">Vật tư:</span> ${parts.map(p => Utils.escapeHtml(`${p.part_name} ×${p.quantity}`)).join(', ')}</div>` : ''}
+              ${Number(r.total_cost) ? `<div class="timeline-text"><span class="text-muted">Chi phí:</span> <strong>${Utils.formatCurrency(r.total_cost)}</strong></div>` : ''}
+            </div>`;
+        }).join('')}
+      </div>
+    `;
   },
 
   reportFault(id) {

@@ -67,6 +67,7 @@ const RepairsPage = {
 
     if (repairResult.success) this.repairs = repairResult.data;
     if (machineResult.success) this.machines = machineResult.data;
+    Notifications.refresh();
 
     this.applyFilters();
 
@@ -129,6 +130,7 @@ const RepairsPage = {
 
   renderTable() {
     const container = document.getElementById('repairs-content');
+    if (!container) return; // user left the page while data was loading
     const total = this.filteredRepairs.length;
     const start = (this.currentPage - 1) * this.pageSize;
     const end = Math.min(start + this.pageSize, total);
@@ -203,6 +205,7 @@ const RepairsPage = {
 
   renderKanban() {
     const container = document.getElementById('repairs-content');
+    if (!container) return; // user left the page while data was loading
     const columns = [
       { status: 'Báo hỏng', icon: '<i data-lucide="send"></i>', color: 'var(--status-danger)' },
       { status: 'Sửa ngoài', icon: '<i data-lucide="truck"></i>', color: 'var(--status-warning)' },

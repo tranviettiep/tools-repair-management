@@ -8,6 +8,11 @@
 ## 1. Các hạng mục ĐÃ hoàn thành (Done)
 *   **Kiến trúc & Giao diện (UI/UX):** ~~Dark Mode~~ → **(05/10/2026) Chuyển sang giao diện sáng (Light theme)**: bảng màu xanh dương công nghiệp `#2563eb` trên nền `#f4f6fa`, toàn bộ màu nằm trong biến CSS ở `css/style.css`; thay emoji bằng icon **Lucide** (`<i data-lucide="tên-icon">`, tự render qua `App.initIcons()`); logo VICO ở sidebar & trang đăng nhập; màu biểu đồ dùng chung `Utils.chartTheme`; hộp thoại xác nhận dùng `Modal.confirm` thay `confirm()` của trình duyệt.
 *   **Tối ưu điện thoại (05/10/2026):** `js/components/mobile.js` tự gắn nhãn cột (`data-label`) cho mọi bảng `.data-table`/`.table` → dưới 768px mỗi dòng hiển thị thành thẻ; menu ⋮ mở dạng bảng trượt từ dưới; hộp thoại lớn mở toàn màn hình; ô nhập 16px (tránh iPhone tự phóng to), nút ≥ 40px; nút nổi "Báo hỏng" (`App.quickReport()`). Khi thêm bảng mới chỉ cần dùng class `data-table` có `<thead>` là tự hỗ trợ điện thoại.
+*   **Tính năng mới (06/10/2026):**
+    *   **Thông báo** (`js/components/notifications.js`): chuông + số trên menu Sửa chữa = số phiếu đang *Báo hỏng*; bấm chuông xem danh sách và mở phiếu. Tự cập nhật qua Supabase Realtime (cần chạy `ALTER PUBLICATION supabase_realtime ADD TABLE repairs;` — cuối file `database/supabase_schema.sql`), dự phòng kiểm tra lại mỗi 60 giây.
+    *   **Lịch sử sửa chữa trong chi tiết máy**: số lần hỏng, tổng chi phí vật tư, lỗi hay gặp, dòng thời gian; cảnh báo khi hỏng ≥ 3 lần/90 ngày.
+    *   **Tạo đề xuất vật tư một lần bấm** từ cảnh báo tồn kho (trang Phụ tùng) và khối "Phụ tùng sắp hết" (Tổng quan); SL gợi ý = 2 × tối thiểu − tồn. Sửa lỗi phiếu đề xuất cũ không hiện lại vật tư khi sửa.
+    *   **PWA**: `manifest.webmanifest`, `sw.js`, icon trong `icons/`; mục "Cài app lên điện thoại" trong menu tài khoản và banner gợi ý trên điện thoại.
 *   **Frontend (SPA - HTML/CSS/Vanilla JS):**
     *   Hoàn thiện toàn bộ các trang: Dashboard, Quản lý Máy, Sửa chữa, Kho phụ tùng, Báo cáo, Người dùng, Cài đặt.
     *   Xây dựng hệ thống Mock API để chạy thử nghiệm trực tiếp trên trình duyệt (Chế độ Demo).

@@ -39,7 +39,8 @@ const SparePartsPage = {
       </div>
     `;
 
-    await this.loadData();
+    this.ready = this.loadData();
+    await this.ready;
   },
 
   async loadData() {
@@ -84,6 +85,7 @@ const SparePartsPage = {
         <div class="low-stock-warning">
           <i data-lucide="triangle-alert"></i> <strong>${lowStock.length} phụ tùng</strong> dưới mức tồn kho tối thiểu:
           ${lowStock.map(p => `<span class="badge badge-urgent">${Utils.escapeHtml(p.part_name)} (${p.quantity}/${p.min_quantity})</span>`).join(' ')}
+          <button class="btn btn-primary btn-sm low-stock-action" onclick="SparePartsPage.proposeLowStock()"><i data-lucide="file-plus"></i> Tạo đề xuất cho ${lowStock.length} vật tư</button>
         </div>
       `;
     } else {
@@ -319,7 +321,8 @@ const SparePartsPage = {
     }
   },
 
-  openProposalModal(id = null) {
+  // prefill: [{ part_id, qty }] lines to start a new proposal with (e.g. parts below minimum stock)
+  openProposalModal(id = null, prefill = null) {
     this._editingProposalId = id;
     let initialHtml = '';
     
@@ -356,7 +359,13 @@ const SparePartsPage = {
       const ticket = this.proposals.find(r => r.id === id);
       let items = [];
       try { items = typeof ticket.items === 'string' ? JSON.parse(ticket.items) : ticket.items; } catch(e){}
-      items.forEach(it => this.addProposalItem(it.part_id, it.qty, it.needDate));
+      // Saved lines keep the part code, not its id
+      items.forEach(it => {
+        const part = this.parts.find(p => p.id === it.part_id || p.part_code === it.code);
+        this.addProposalItem(part?.id || '', it.qty, it.needDate, it.priceReq);
+      });
+    } else if (prefill?.length) {
+      prefill.forEach(it => this.addProposalItem(it.part_id, it.qty));
     } else {
       this.addProposalItem();
     }
@@ -409,7 +418,7 @@ const SparePartsPage = {
     });
   },
 
-  addProposalItem(pId = "", pQty = "", pDate = "") {
+  addProposalItem(pId = "", pQty = "", pDate = "", pPriceReq = "") {
     const container = document.getElementById('proposal-items');
     if (!container.querySelector('.proposal-header')) {
       const header = document.createElement('div');
@@ -454,7 +463,43 @@ const SparePartsPage = {
         this.closest('.proposal-entry').querySelector('.p-part-stock').value = opt.dataset.stock;
       }
     });
+
+    // Prefill when editing a saved proposal or creating one from low-stock parts
+    if (pId) {
+      const select = row.querySelector('.p-part-id');
+      select.value = pId;
+      select.dispatchEvent(new Event('change'));
+    }
+    if (pQty) row.querySelector('.p-part-qty').value = pQty;
+    if (pDate) row.querySelector('.p-part-need-date').value = pDate;
+    if (pPriceReq) row.querySelector('.p-part-price-req').value = pPriceReq;
+
     container.appendChild(row);
+  },
+
+  // Suggested order quantity: enough to reach twice the minimum stock
+  _suggestedQty(part) {
+    return Math.max(Number(part.min_quantity) * 2 - Number(part.quantity), 1);
+  },
+
+  // One click: open a new proposal pre-filled with every part at or below its minimum stock.
+  // Works from any page (e.g. the dashboard card) by switching to Spare Parts first.
+  async proposeLowStock() {
+    if (Router.getPath() !== '/spare-parts') {
+      this.ready = null;
+      Router.navigate('/spare-parts');
+      for (let i = 0; i < 50 && !this.ready; i++) await new Promise(r => setTimeout(r, 100));
+    }
+    if (this.ready) await this.ready;
+
+    const low = this.parts.filter(p => Number(p.quantity) <= Number(p.min_quantity));
+    if (!low.length) {
+      Toast.info('Không có vật tư nào dưới mức tồn kho tối thiểu');
+      return;
+    }
+    this.switchTab('proposal');
+    this.openProposalModal(null, low.map(p => ({ part_id: p.id, qty: this._suggestedQty(p) })));
+    Toast.info(`Đã điền sẵn ${low.length} vật tư sắp hết. Kiểm tra lại số lượng trước khi lưu.`);
   },
 
   _collectProposalItems() {
