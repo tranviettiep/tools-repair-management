@@ -604,6 +604,79 @@ const API = {
       return this._handleError(e);
     }
   },
+
+  async renameConfigItem(key, oldValue, newValue) {
+    this.init();
+    try {
+      if (!key || !oldValue || !newValue || oldValue === newValue) {
+        return { success: true };
+      }
+
+      // 1. Cập nhật giá trị trong bảng config
+      const { data: configRows, error: cfgErr } = await this.supabase.from('config').select('*');
+      if (cfgErr) throw cfgErr;
+
+      const cfg = configRows ? configRows.find(c => c.key === key) : null;
+      let items = [];
+      if (cfg) {
+        try { items = JSON.parse(cfg.value); } catch {}
+      }
+      const idx = items.indexOf(oldValue);
+      if (idx !== -1) {
+        items[idx] = newValue;
+      } else if (!items.includes(newValue)) {
+        items.push(newValue);
+      }
+      await this.updateConfig(key, JSON.stringify(items));
+
+      // 2. Đồng bộ các bảng dữ liệu liên quan
+      if (key === 'machine_types') {
+        // Cập nhật loại máy trong bảng machines
+        await this.supabase.from('machines').update({ machine_type: newValue }).eq('machine_type', oldValue);
+
+        // Cập nhật cấu hình mã lỗi (fault_codes)
+        const fcCfg = configRows ? configRows.find(c => c.key === 'fault_codes') : null;
+        if (fcCfg) {
+          try {
+            const codes = JSON.parse(fcCfg.value);
+            let fcChanged = false;
+            codes.forEach(c => {
+              if (c.machine_type === oldValue) {
+                c.machine_type = newValue;
+                fcChanged = true;
+              }
+            });
+            if (fcChanged) {
+              await this.updateConfig('fault_codes', JSON.stringify(codes));
+            }
+          } catch (e) {
+            console.error('Error updating fault_codes config on rename:', e);
+          }
+        }
+
+        // Cập nhật bảng repairs nếu machine_name khớp tên loại máy cũ
+        await this.supabase.from('repairs').update({ machine_name: newValue }).eq('machine_name', oldValue);
+
+      } else if (key === 'departments') {
+        // Cập nhật bộ phận trong bảng machines
+        await this.supabase.from('machines').update({ department: newValue }).eq('department', oldValue);
+
+        // Cập nhật bộ phận trong bảng repairs
+        await this.supabase.from('repairs').update({ department: newValue }).eq('department', oldValue);
+
+        // Cập nhật bộ phận trong bảng users
+        await this.supabase.from('users').update({ department: newValue }).eq('department', oldValue);
+
+      } else if (key === 'part_categories') {
+        // Cập nhật loại phụ tùng trong bảng parts
+        await this.supabase.from('parts').update({ category: newValue }).eq('category', oldValue);
+      }
+
+      return { success: true };
+    } catch (e) {
+      return this._handleError(e);
+    }
+  },
   
   // ── External Repairs ──
   async getExternalRepairs(filters = {}) {
@@ -725,6 +798,7 @@ const API = {
       case 'delete_user': return this.deleteUser(params.id);
       case 'get_config': return this.getConfig();
       case 'update_config': return this.updateConfig(params.key, params.value);
+      case 'rename_config_item': return this.renameConfigItem(params.key, params.old_value, params.new_value);
       case 'get_external_repairs': return this.getExternalRepairs(params);
       case 'save_external_repair': return this.saveExternalRepair(params.data);
       case 'delete_external_repair': return this.deleteExternalRepair(params.id);

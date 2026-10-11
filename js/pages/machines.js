@@ -333,13 +333,9 @@ const MachinesPage = {
     row.className = 'machine-entry';
     row.classList.add('entry-card');
     row.innerHTML = `
-      <div style="flex:1; min-width:180px">
+      <div style="flex:1; min-width:140px">
         <label class="field-caption">Mã máy *</label>
         <input type="text" class="form-input f-machine-code" required>
-      </div>
-      <div style="flex:1; min-width:180px">
-        <label class="field-caption">Tên máy *</label>
-        <input type="text" class="form-input f-machine-name" required>
       </div>
       <div style="flex:1; min-width:150px">
         <label class="field-caption">Loại máy *</label>
@@ -348,7 +344,15 @@ const MachinesPage = {
           ${this._getConfigValue('machine_types', []).map(t => `<option value="${Utils.escapeHtml(t)}">${Utils.escapeHtml(t)}</option>`).join('')}
         </select>
       </div>
-      <div style="flex:1; min-width:150px">
+      <div style="flex:1; min-width:140px">
+        <label class="field-caption">Hãng sản xuất</label>
+        <input type="text" class="form-input f-machine-name" placeholder="VD: Bosch, Makita...">
+      </div>
+      <div style="flex:1; min-width:130px">
+        <label class="field-caption">Model</label>
+        <input type="text" class="form-input f-location">
+      </div>
+      <div style="flex:1; min-width:140px">
         <label class="field-caption">Bộ phận *</label>
         <select class="form-select f-department" required>
           <option value="">-- Chọn --</option>
@@ -358,15 +362,17 @@ const MachinesPage = {
       <button type="button" class="btn btn-ghost entry-remove entry-remove-corner" onclick="this.parentElement.remove()" title="Xóa dòng"><i data-lucide="x"></i></button>
     `;
     container.appendChild(row);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
   async saveMachine(id) {
     const isEdit = !!id;
 
     if (isEdit) {
+      const nameInput = document.querySelector('.f-machine-name');
       const data = {
         machine_code: document.querySelector('.f-machine-code').value.trim(),
-        machine_name: document.querySelector('.f-machine-name').value.trim(),
+        machine_name: nameInput ? nameInput.value.trim() : '',
         machine_type: document.querySelector('.f-machine-type').value,
         department: document.querySelector('.f-department').value,
         location: document.querySelector('.f-location') ? document.querySelector('.f-location').value.trim() : document.getElementById('f-location') ? document.getElementById('f-location').value.trim() : '',
@@ -392,9 +398,10 @@ const MachinesPage = {
       let valid = true;
       let dataList = [];
       entries.forEach(entry => {
+        const nameInput = entry.querySelector('.f-machine-name');
         const data = {
           machine_code: entry.querySelector('.f-machine-code').value.trim(),
-          machine_name: entry.querySelector('.f-machine-name').value.trim(),
+          machine_name: nameInput ? nameInput.value.trim() : '',
           machine_type: entry.querySelector('.f-machine-type').value,
           department: entry.querySelector('.f-department').value,
           location: entry.querySelector('.f-location') ? entry.querySelector('.f-location').value.trim() : '',
@@ -537,7 +544,7 @@ const MachinesPage = {
     const machine = this.machines.find(m => m.id === id);
     if (machine) {
       // Switch to repairs page with pre-filled machine
-      Utils.storage.set('prefill_repair', { machine_id: machine.id, machine_code: machine.machine_code, machine_name: machine.machine_name, department: machine.department });
+      Utils.storage.set('prefill_repair', { machine_id: machine.id, machine_code: machine.machine_code, machine_name: machine.machine_name || machine.machine_type, department: machine.department });
       Router.navigate('/repairs');
       setTimeout(() => RepairsPage.showAddModal(), 500);
     }

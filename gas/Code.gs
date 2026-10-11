@@ -132,6 +132,7 @@ function doPost(e) {
 
       // Config
       case 'update_config': return jsonResponse(updateConfig(body.key, body.value));
+      case 'rename_config_item': return jsonResponse(renameConfigItem(body.key, body.old_value, body.new_value));
 
       default:
         return jsonResponse({ success: false, error: 'Unknown action: ' + action });
@@ -232,6 +233,87 @@ function updateConfig(key, value) {
 
   // Key not found, add new
   sheet.appendRow([key, value, '']);
+  return { success: true };
+}
+
+function renameConfigItem(key, oldValue, newValue) {
+  if (!key || !oldValue || !newValue || oldValue === newValue) {
+    return { success: true };
+  }
+
+  // 1. Cập nhật sheet Config
+  const sheet = getSheet(SHEETS.CONFIG);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      try {
+        let items = JSON.parse(data[i][1]);
+        const idx = items.indexOf(oldValue);
+        if (idx !== -1) {
+          items[idx] = newValue;
+        } else if (!items.includes(newValue)) {
+          items.push(newValue);
+        }
+        sheet.getRange(i + 1, 2).setValue(JSON.stringify(items));
+      } catch (e) {}
+      break;
+    }
+  }
+
+  // 2. Đồng bộ các sheet liên quan
+  if (key === 'machine_types') {
+    // machines: cột 4 (machine_type)
+    const mSheet = getSheet(SHEETS.MACHINES);
+    const mData = mSheet.getDataRange().getValues();
+    for (let i = 1; i < mData.length; i++) {
+      if (mData[i][3] === oldValue) mSheet.getRange(i + 1, 4).setValue(newValue);
+    }
+    // config: fault_codes
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === 'fault_codes') {
+        try {
+          let codes = JSON.parse(data[i][1]);
+          let changed = false;
+          codes.forEach(c => { if (c.machine_type === oldValue) { c.machine_type = newValue; changed = true; } });
+          if (changed) sheet.getRange(i + 1, 2).setValue(JSON.stringify(codes));
+        } catch (e) {}
+        break;
+      }
+    }
+    // repairs: cột 4 (machine_name) nếu trùng tên loại máy cũ
+    const rSheet = getSheet(SHEETS.REPAIRS);
+    const rData = rSheet.getDataRange().getValues();
+    for (let i = 1; i < rData.length; i++) {
+      if (rData[i][3] === oldValue) rSheet.getRange(i + 1, 4).setValue(newValue);
+    }
+  } else if (key === 'departments') {
+    // machines: cột 5 (department)
+    const mSheet = getSheet(SHEETS.MACHINES);
+    const mData = mSheet.getDataRange().getValues();
+    for (let i = 1; i < mData.length; i++) {
+      if (mData[i][4] === oldValue) mSheet.getRange(i + 1, 5).setValue(newValue);
+    }
+    // repairs: cột 5 (department)
+    const rSheet = getSheet(SHEETS.REPAIRS);
+    const rData = rSheet.getDataRange().getValues();
+    for (let i = 1; i < rData.length; i++) {
+      if (rData[i][4] === oldValue) rSheet.getRange(i + 1, 5).setValue(newValue);
+    }
+    // users: cột 6 (department)
+    const uSheet = getSheet(SHEETS.USERS);
+    const uData = uSheet.getDataRange().getValues();
+    for (let i = 1; i < uData.length; i++) {
+      if (uData[i][5] === oldValue) uSheet.getRange(i + 1, 6).setValue(newValue);
+    }
+  } else if (key === 'part_categories') {
+    // parts: cột 4 (category)
+    const pSheet = getSheet(SHEETS.PARTS);
+    const pData = pSheet.getDataRange().getValues();
+    for (let i = 1; i < pData.length; i++) {
+      if (pData[i][3] === oldValue) pSheet.getRange(i + 1, 4).setValue(newValue);
+    }
+  }
+
   return { success: true };
 }
 

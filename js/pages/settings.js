@@ -168,6 +168,7 @@ const SettingsPage = {
     filterEl.innerHTML = '<option value="">Tất cả loại máy</option>' +
       types.map(t => `<option value="${Utils.escapeHtml(t)}" ${t === current ? 'selected' : ''}>${Utils.escapeHtml(t)}</option>`).join('');
     this.renderFaultCodes();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
   renderFaultCodes() {
@@ -262,13 +263,14 @@ const SettingsPage = {
     return `
       <div style="display:flex;flex-direction:column;gap:6px;padding:8px 0">
         ${items.map((item, i) => `
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="flex:1;padding:6px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm)">${Utils.escapeHtml(item)}</span>
-            <button class="btn btn-ghost btn-sm" onclick="SettingsPage.removeItem('${configKey}', ${i})" style="color:var(--status-danger);min-width:30px"><i data-lucide="x"></i></button>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="flex:1;padding:6px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm);word-break:break-word">${Utils.escapeHtml(item)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="SettingsPage.editItem('${configKey}', ${i})" title="Chỉnh sửa" style="color:var(--text-secondary);min-width:32px;padding:4px"><i data-lucide="pencil"></i></button>
+            <button class="btn btn-ghost btn-sm" onclick="SettingsPage.removeItem('${configKey}', ${i})" title="Xóa" style="color:var(--status-danger);min-width:32px;padding:4px"><i data-lucide="trash-2"></i></button>
           </div>
         `).join('')}
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <input type="text" class="form-input" id="new-${configKey}" placeholder="${placeholder}" style="flex:1">
+          <input type="text" class="form-input" id="new-${configKey}" placeholder="${placeholder}" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();SettingsPage.addItem('${configKey}');}">
           <button class="btn btn-secondary btn-sm" onclick="SettingsPage.addItem('${configKey}')"><i data-lucide="plus"></i> Thêm</button>
         </div>
       </div>
@@ -293,8 +295,103 @@ const SettingsPage = {
     Toast.success('Đã thêm');
   },
 
+  async editItem(configKey, index) {
+    const items = this._getConfigValue(configKey, []);
+    const oldValue = items[index];
+    if (!oldValue) return;
+
+    const labelMap = {
+      'machine_types': 'loại máy công cụ',
+      'departments': 'bộ phận / phân xưởng',
+      'part_categories': 'loại phụ tùng'
+    };
+    const entityLabel = labelMap[configKey] || 'danh mục';
+
+    const modal = Modal.show({
+      title: `<i data-lucide="pencil"></i> Sửa ${entityLabel}`,
+      size: 'sm',
+      content: `
+        <div class="form-group">
+          <label>Tên ${entityLabel} <span class="required">*</span></label>
+          <input type="text" class="form-input" id="edit-config-val" value="${Utils.escapeHtml(oldValue)}">
+        </div>
+        <div class="alert alert-info" style="font-size:12px; margin-top:8px">
+          <i data-lucide="info"></i>
+          <span>Khi cập nhật, các dữ liệu liên quan trong hệ thống (thiết bị, yêu cầu sửa chữa, người dùng...) đang dùng <strong>"${Utils.escapeHtml(oldValue)}"</strong> sẽ tự động được đồng bộ sang tên mới.</span>
+        </div>
+      `,
+      footer: `
+        <button class="btn btn-secondary" data-modal-close>Hủy</button>
+        <button class="btn btn-primary" id="btn-save-edit-config"><i data-lucide="save"></i> Cập nhật & Đồng bộ</button>
+      `
+    });
+
+    setTimeout(() => {
+      const inp = document.getElementById('edit-config-val');
+      if (inp) {
+        inp.focus();
+        inp.select();
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btn-save-edit-config').click();
+          }
+        });
+      }
+    }, 100);
+
+    document.getElementById('btn-save-edit-config').onclick = async () => {
+      const input = document.getElementById('edit-config-val');
+      const newValue = input.value.trim();
+      if (!newValue) {
+        Toast.warning('Vui lòng nhập tên');
+        return;
+      }
+      if (newValue === oldValue) {
+        modal.close();
+        return;
+      }
+      if (items.some((item, i) => i !== index && item.toLowerCase() === newValue.toLowerCase())) {
+        Toast.warning('Tên này đã tồn tại trong danh sách');
+        return;
+      }
+
+      Toast.info('Đang cập nhật và đồng bộ dữ liệu...');
+      const result = await API.renameConfigItem(configKey, oldValue, newValue);
+      if (result.success) {
+        if (configKey === 'departments' && Auth.currentUser && Auth.currentUser.department === oldValue) {
+          Auth.currentUser.department = newValue;
+          Utils.storage.set('user', Auth.currentUser);
+        }
+        modal.close();
+        await this.loadData();
+        Toast.success(`Đã cập nhật và đồng bộ dữ liệu sang "${newValue}"`);
+      } else {
+        Toast.error(result.error || 'Có lỗi xảy ra');
+      }
+    };
+  },
+
   async removeItem(configKey, index) {
     const items = this._getConfigValue(configKey, []);
+    const value = items[index];
+    if (!value) return;
+
+    const labelMap = {
+      'machine_types': 'loại máy công cụ',
+      'departments': 'bộ phận / phân xưởng',
+      'part_categories': 'loại phụ tùng'
+    };
+    const entityLabel = labelMap[configKey] || 'danh mục';
+
+    const confirmed = await Modal.confirm({
+      title: `Xác nhận xóa ${entityLabel}`,
+      message: `Bạn có chắc chắn muốn xóa "${value}" khỏi danh mục cài đặt?`,
+      confirmText: 'Xóa',
+      danger: true
+    });
+    if (!confirmed) return;
+
     items.splice(index, 1);
     await API.updateConfig(configKey, JSON.stringify(items));
     await this.loadData();
