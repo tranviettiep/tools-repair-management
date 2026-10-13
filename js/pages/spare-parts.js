@@ -7,8 +7,20 @@ const SparePartsPage = {
   transactions: [],
   proposals: [],
   supplierLinks: [],
+  configData: [],
   filteredParts: [],
   activeTab: 'list', // 'list', 'import', 'history'
+
+  _getConfigValue(key, defaultVal) {
+    if (!this.configData) return defaultVal;
+    const item = this.configData.find(c => c.key === key);
+    if (!item) return defaultVal;
+    try {
+      return JSON.parse(item.value);
+    } catch {
+      return defaultVal;
+    }
+  },
 
   async render() {
     const container = document.getElementById('page-content');
@@ -55,7 +67,8 @@ const SparePartsPage = {
     if (txResult.success) this.transactions = txResult.data;
     if (propResult && propResult.success) this.proposals = propResult.data;
     if (configResult && configResult.success) {
-      const supplierLinkConf = configResult.data.find(c => c.key === 'supplier_links');
+      this.configData = configResult.data || [];
+      const supplierLinkConf = this.configData.find(c => c.key === 'supplier_links');
       if (supplierLinkConf && supplierLinkConf.value) {
         try {
           this.supplierLinks = JSON.parse(supplierLinkConf.value);
@@ -116,7 +129,7 @@ const SparePartsPage = {
           <div class="table-filters">
             <select id="filter-category" onchange="SparePartsPage.onFilterCategory()">
               <option value="">Tất cả loại</option>
-              ${[...new Set(this.parts.map(p => p.category))].map(c => `<option value="${c}">${c}</option>`).join('')}
+              ${[...new Set([...this._getConfigValue('part_categories', []), ...this.parts.map(p => p.category)])].filter(Boolean).map(c => `<option value="${Utils.escapeHtml(c)}">${Utils.escapeHtml(c)}</option>`).join('')}
             </select>
             <select id="filter-stock" onchange="SparePartsPage.onFilterStock()">
               <option value="">Tất cả</option>
@@ -886,11 +899,22 @@ const SparePartsPage = {
     }
   },
 
-  showAddModal() { this._showPartForm(null); },
-  showEditModal(id) { this._showPartForm(this.parts.find(p => p.id === id)); },
+  async showAddModal() { await this._showPartForm(null); },
+  async showEditModal(id) { await this._showPartForm(this.parts.find(p => p.id === id)); },
 
-  _showPartForm(part) {
+  async _showPartForm(part) {
+    if (!this.configData || this.configData.length === 0) {
+      const configRes = await API.getConfig();
+      if (configRes && configRes.success) {
+        this.configData = configRes.data || [];
+      }
+    }
+
     const isEdit = !!part;
+    const defaultCats = ['Điện', 'Cơ khí', 'Mài', 'Đục', 'Cắt', 'Khoan', 'Bôi trơn'];
+    const configuredCats = this._getConfigValue('part_categories', defaultCats);
+    const categoryOptions = [...new Set([...configuredCats, ...(part?.category ? [part.category] : [])])].filter(Boolean);
+
     const content = `
       <form onsubmit="return false">
         <div class="form-row">
@@ -907,7 +931,9 @@ const SparePartsPage = {
           <div class="form-group">
             <label>Loại</label>
             <select class="form-select" id="f-part-category">
-              ${['Điện', 'Cơ khí', 'Mài', 'Đục', 'Cắt', 'Khoan', 'Bôi trơn'].map(c => `<option value="${c}" ${part?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+              ${categoryOptions.length > 0
+                ? categoryOptions.map(c => `<option value="${Utils.escapeHtml(c)}" ${part?.category === c ? 'selected' : ''}>${Utils.escapeHtml(c)}</option>`).join('')
+                : '<option value="">-- Chưa có loại phụ tùng --</option>'}
             </select>
           </div>
           <div class="form-group">
