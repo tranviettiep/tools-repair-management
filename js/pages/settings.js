@@ -39,14 +39,25 @@ const SettingsPage = {
         <div class="charts-grid" style="margin-top:16px">
           <div class="chart-card">
             <div class="chart-card-header">
+              <span class="chart-card-title"><i data-lucide="tag"></i> Hãng sản xuất</span>
+            </div>
+            <div id="setting-manufacturers">
+              <div class="loading-inline"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
               <span class="chart-card-title"><i data-lucide="package"></i> Loại phụ tùng</span>
             </div>
             <div id="setting-part-categories">
               <div class="loading-inline"><div class="spinner"></div></div>
             </div>
           </div>
+        </div>
 
-          <div class="chart-card">
+        <div class="charts-grid" style="margin-top:16px">
+          <div class="chart-card" style="grid-column: 1 / -1">
             <div class="chart-card-header">
               <span class="chart-card-title"><i data-lucide="link"></i> Kết nối Backend</span>
             </div>
@@ -65,9 +76,8 @@ const SettingsPage = {
         <div class="charts-grid" style="margin-top:16px">
           <div class="chart-card" style="grid-column: 1 / -1">
             <div class="chart-card-header">
-              <span class="chart-card-title"><i data-lucide="triangle-alert"></i> Mã lỗi theo loại máy</span>
+              <span class="chart-card-title"><i data-lucide="triangle-alert"></i> Danh mục mã lỗi</span>
               <div style="display:flex; gap:8px; align-items:center">
-                <select class="form-select" id="fc-filter-type" onchange="SettingsPage.renderFaultCodes()"></select>
                 <button class="btn btn-primary btn-sm" onclick="SettingsPage.showFaultCodeModal()" style="white-space: nowrap; flex-shrink: 0;"><i data-lucide="plus"></i> Thêm mã lỗi</button>
               </div>
             </div>
@@ -157,32 +167,28 @@ const SettingsPage = {
   renderConfigLists() {
     const types = this._getConfigValue('machine_types', []);
     const depts = this._getConfigValue('departments', []);
+    const brands = this._getConfigValue('manufacturers', ['Bosch']);
     const cats = this._getConfigValue('part_categories', []);
 
     document.getElementById('setting-machine-types').innerHTML = this._renderEditableList(types, 'machine_types', 'Thêm loại máy...');
     document.getElementById('setting-departments').innerHTML = this._renderEditableList(depts, 'departments', 'Thêm bộ phận...');
+    document.getElementById('setting-manufacturers').innerHTML = this._renderEditableList(brands, 'manufacturers', 'Thêm hãng sản xuất...');
     document.getElementById('setting-part-categories').innerHTML = this._renderEditableList(cats, 'part_categories', 'Thêm loại phụ tùng...');
 
-    const filterEl = document.getElementById('fc-filter-type');
-    const current = filterEl.value;
-    filterEl.innerHTML = '<option value="">Tất cả loại máy</option>' +
-      types.map(t => `<option value="${Utils.escapeHtml(t)}" ${t === current ? 'selected' : ''}>${Utils.escapeHtml(t)}</option>`).join('');
     this.renderFaultCodes();
     if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
   renderFaultCodes() {
-    const type = document.getElementById('fc-filter-type').value;
-    const list = this._getConfigValue('fault_codes', []).filter(c => !type || c.machine_type === type);
+    const list = this._getConfigValue('fault_codes', []);
     document.getElementById('setting-fault-codes').innerHTML = list.length ? `
       <table class="data-table">
-        <thead><tr><th>Mã lỗi</th><th>Tên lỗi</th><th>Loại máy</th><th style="width:140px"></th></tr></thead>
+        <thead><tr><th>Mã lỗi</th><th>Tên lỗi / nguyên nhân</th><th style="width:140px"></th></tr></thead>
         <tbody>
           ${list.map(c => `
             <tr>
               <td><strong>${Utils.escapeHtml(c.code)}</strong></td>
               <td>${Utils.escapeHtml(c.name)}</td>
-              <td>${Utils.escapeHtml(c.machine_type)}</td>
               <td>
                 <button class="btn btn-secondary btn-sm" onclick="SettingsPage.showFaultCodeModal('${c.id}')">Sửa</button>
                 <button class="btn btn-danger btn-sm" onclick="SettingsPage.deleteFaultCode('${c.id}')">Xóa</button>
@@ -195,19 +201,11 @@ const SettingsPage = {
   showFaultCodeModal(id = null) {
     const codes = this._getConfigValue('fault_codes', []);
     const item = id ? codes.find(c => c.id === id) : null;
-    const types = this._getConfigValue('machine_types', []);
-    const defaultType = item ? item.machine_type : document.getElementById('fc-filter-type').value;
 
     const modal = Modal.show({
       title: item ? 'Sửa mã lỗi' : 'Thêm mã lỗi',
       size: 'sm',
       content: `
-        <div class="form-group">
-          <label>Loại máy <span class="required">*</span></label>
-          <select class="form-select" id="fc-type">
-            ${types.map(t => `<option value="${Utils.escapeHtml(t)}" ${t === defaultType ? 'selected' : ''}>${Utils.escapeHtml(t)}</option>`).join('')}
-          </select>
-        </div>
         <div class="form-group">
           <label>Mã lỗi <span class="required">*</span></label>
           <input type="text" class="form-input" id="fc-code" value="${item ? Utils.escapeHtml(item.code) : ''}" placeholder="VD: E01">
@@ -222,21 +220,21 @@ const SettingsPage = {
     });
 
     document.getElementById('btn-save-fc').onclick = async () => {
-      const machine_type = document.getElementById('fc-type').value;
       const code = document.getElementById('fc-code').value.trim();
       const name = document.getElementById('fc-name').value.trim();
-      if (!machine_type || !code || !name) {
+      if (!code || !name) {
         Toast.warning('Vui lòng nhập đầy đủ thông tin');
         return;
       }
-      if (codes.some(c => c.id !== id && c.machine_type === machine_type && c.code.toLowerCase() === code.toLowerCase())) {
-        Toast.warning('Mã lỗi đã tồn tại cho loại máy này');
+      if (codes.some(c => c.id !== id && c.code.toLowerCase() === code.toLowerCase())) {
+        Toast.warning('Mã lỗi đã tồn tại');
         return;
       }
       if (item) {
-        Object.assign(item, { machine_type, code, name });
+        Object.assign(item, { code, name });
+        delete item.machine_type;
       } else {
-        codes.push({ id: Utils.generateId('fc'), machine_type, code, name });
+        codes.push({ id: Utils.generateId('fc'), code, name });
       }
       await API.updateConfig('fault_codes', JSON.stringify(codes));
       modal.close();
@@ -282,7 +280,7 @@ const SettingsPage = {
     const value = input.value.trim();
     if (!value) return;
 
-    const items = this._getConfigValue(configKey, []);
+    const items = this._getConfigValue(configKey, configKey === 'manufacturers' ? ['Bosch'] : []);
     if (items.includes(value)) {
       Toast.warning('Giá trị đã tồn tại');
       return;
@@ -296,12 +294,13 @@ const SettingsPage = {
   },
 
   async editItem(configKey, index) {
-    const items = this._getConfigValue(configKey, []);
+    const items = this._getConfigValue(configKey, configKey === 'manufacturers' ? ['Bosch'] : []);
     const oldValue = items[index];
     if (!oldValue) return;
 
     const labelMap = {
       'machine_types': 'loại máy công cụ',
+      'manufacturers': 'hãng sản xuất',
       'departments': 'bộ phận / phân xưởng',
       'part_categories': 'loại phụ tùng'
     };
@@ -373,12 +372,13 @@ const SettingsPage = {
   },
 
   async removeItem(configKey, index) {
-    const items = this._getConfigValue(configKey, []);
+    const items = this._getConfigValue(configKey, configKey === 'manufacturers' ? ['Bosch'] : []);
     const value = items[index];
     if (!value) return;
 
     const labelMap = {
       'machine_types': 'loại máy công cụ',
+      'manufacturers': 'hãng sản xuất',
       'departments': 'bộ phận / phân xưởng',
       'part_categories': 'loại phụ tùng'
     };

@@ -260,6 +260,10 @@ const MachinesPage = {
   _showMachineForm(machine) {
     const isEdit = !!machine;
     const title = isEdit ? '<i data-lucide="pencil"></i> Sửa thông tin máy' : '<i data-lucide="wrench"></i> Thêm máy mới';
+    const brands = this._getConfigValue('manufacturers', ['Bosch']);
+    const editBrands = (isEdit && machine.machine_name && !brands.includes(machine.machine_name))
+      ? [machine.machine_name, ...brands]
+      : brands;
 
     let content = '';
     if (isEdit) {
@@ -281,7 +285,10 @@ const MachinesPage = {
         <div class="form-row machine-entry">
           <div class="form-group">
             <label>Hãng sản xuất</label>
-            <input type="text" class="form-input f-machine-name" value="${Utils.escapeHtml(machine.machine_name)}" placeholder="VD: Bosch, Makita...">
+            <select class="form-select f-machine-name">
+              <option value="">Chọn hãng sản xuất</option>
+              ${editBrands.map(b => `<option value="${Utils.escapeHtml(b)}" ${machine.machine_name === b ? 'selected' : ''}>${Utils.escapeHtml(b)}</option>`).join('')}
+            </select>
           </div>
           <div class="form-group">
             <label>Model</label>
@@ -329,6 +336,8 @@ const MachinesPage = {
 
   addMachineRow() {
     const container = document.getElementById('machine-entries');
+    const brands = this._getConfigValue('manufacturers', ['Bosch']);
+    const defaultBrand = brands.find(b => b.toLowerCase() === 'bosch') || brands[0] || '';
     const row = document.createElement('div');
     row.className = 'machine-entry';
     row.classList.add('entry-card');
@@ -346,7 +355,10 @@ const MachinesPage = {
       </div>
       <div style="flex:1; min-width:140px">
         <label class="field-caption">Hãng sản xuất</label>
-        <input type="text" class="form-input f-machine-name" placeholder="VD: Bosch, Makita...">
+        <select class="form-select f-machine-name">
+          <option value="">-- Chọn --</option>
+          ${brands.map(b => `<option value="${Utils.escapeHtml(b)}" ${b === defaultBrand ? 'selected' : ''}>${Utils.escapeHtml(b)}</option>`).join('')}
+        </select>
       </div>
       <div style="flex:1; min-width:130px">
         <label class="field-caption">Model</label>

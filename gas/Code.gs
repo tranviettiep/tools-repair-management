@@ -268,23 +268,18 @@ function renameConfigItem(key, oldValue, newValue) {
     for (let i = 1; i < mData.length; i++) {
       if (mData[i][3] === oldValue) mSheet.getRange(i + 1, 4).setValue(newValue);
     }
-    // config: fault_codes
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === 'fault_codes') {
-        try {
-          let codes = JSON.parse(data[i][1]);
-          let changed = false;
-          codes.forEach(c => { if (c.machine_type === oldValue) { c.machine_type = newValue; changed = true; } });
-          if (changed) sheet.getRange(i + 1, 2).setValue(JSON.stringify(codes));
-        } catch (e) {}
-        break;
-      }
-    }
     // repairs: cột 4 (machine_name) nếu trùng tên loại máy cũ
     const rSheet = getSheet(SHEETS.REPAIRS);
     const rData = rSheet.getDataRange().getValues();
     for (let i = 1; i < rData.length; i++) {
       if (rData[i][3] === oldValue) rSheet.getRange(i + 1, 4).setValue(newValue);
+    }
+  } else if (key === 'manufacturers') {
+    // machines: cột 3 (machine_name - hãng sản xuất)
+    const mSheet = getSheet(SHEETS.MACHINES);
+    const mData = mSheet.getDataRange().getValues();
+    for (let i = 1; i < mData.length; i++) {
+      if (mData[i][2] === oldValue) mSheet.getRange(i + 1, 3).setValue(newValue);
     }
   } else if (key === 'departments') {
     // machines: cột 5 (department)
@@ -354,9 +349,10 @@ function setupSpreadsheet() {
   const configSheet = ss.getSheetByName(SHEETS.CONFIG);
   if (configSheet.getLastRow() <= 1) {
     configSheet.appendRow(['machine_types', '["Máy mài tay","Máy mài góc","Máy đục tay","Máy khoan tay","Máy cắt"]', 'Danh sách loại máy']);
+    configSheet.appendRow(['manufacturers', '["Bosch"]', 'Danh sách hãng sản xuất']);
     configSheet.appendRow(['departments', '["Phân xưởng A","Phân xưởng B","Phân xưởng C","Phân xưởng D"]', 'Danh sách bộ phận']);
     configSheet.appendRow(['part_categories', '["Điện","Cơ khí","Mài","Đục","Cắt","Khoan","Bôi trơn"]', 'Danh sách loại phụ tùng']);
-    configSheet.appendRow(['fault_codes', '[]', 'Danh sách mã lỗi theo loại máy']);
+    configSheet.appendRow(['fault_codes', '[]', 'Danh sách mã lỗi']);
   }
 
   Logger.log('Setup completed successfully!');

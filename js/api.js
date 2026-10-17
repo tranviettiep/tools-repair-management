@@ -617,7 +617,7 @@ const API = {
       if (cfgErr) throw cfgErr;
 
       const cfg = configRows ? configRows.find(c => c.key === key) : null;
-      let items = [];
+      let items = key === 'manufacturers' ? ['Bosch'] : [];
       if (cfg) {
         try { items = JSON.parse(cfg.value); } catch {}
       }
@@ -634,28 +634,12 @@ const API = {
         // Cập nhật loại máy trong bảng machines
         await this.supabase.from('machines').update({ machine_type: newValue }).eq('machine_type', oldValue);
 
-        // Cập nhật cấu hình mã lỗi (fault_codes)
-        const fcCfg = configRows ? configRows.find(c => c.key === 'fault_codes') : null;
-        if (fcCfg) {
-          try {
-            const codes = JSON.parse(fcCfg.value);
-            let fcChanged = false;
-            codes.forEach(c => {
-              if (c.machine_type === oldValue) {
-                c.machine_type = newValue;
-                fcChanged = true;
-              }
-            });
-            if (fcChanged) {
-              await this.updateConfig('fault_codes', JSON.stringify(codes));
-            }
-          } catch (e) {
-            console.error('Error updating fault_codes config on rename:', e);
-          }
-        }
-
         // Cập nhật bảng repairs nếu machine_name khớp tên loại máy cũ
         await this.supabase.from('repairs').update({ machine_name: newValue }).eq('machine_name', oldValue);
+
+      } else if (key === 'manufacturers') {
+        // Cập nhật hãng sản xuất trong bảng machines
+        await this.supabase.from('machines').update({ machine_name: newValue }).eq('machine_name', oldValue);
 
       } else if (key === 'departments') {
         // Cập nhật bộ phận trong bảng machines

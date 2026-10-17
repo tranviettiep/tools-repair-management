@@ -436,10 +436,7 @@ const RepairsPage = {
 
     const [partsResult, configResult] = await Promise.all([API.getParts(), API.getConfig()]);
     this._parts = partsResult.success ? partsResult.data : [];
-    const allCodes = this._parseFaultCodes(configResult);
-    // Máy trong danh mục: lọc mã lỗi theo loại máy. Thiết bị khác: hiện toàn bộ mã lỗi.
-    const machine = this.machines.find(m => m.id === repair.machine_id);
-    this._faultCodes = machine ? allCodes.filter(c => c.machine_type === machine.machine_type) : allCodes;
+    this._faultCodes = this._parseFaultCodes(configResult);
 
     const faultCodeList = this._faultCodes.map(c => `
       <label style="display:block; padding:8px; border-bottom:1px solid var(--border-color); cursor:pointer;">
@@ -453,7 +450,7 @@ const RepairsPage = {
         <div class="form-group">
           <label>Nguyên nhân hỏng (mã lỗi) <span class="required">*</span></label>
           <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border-color); border-radius:var(--radius-md); background:var(--bg-secondary);">
-            ${faultCodeList || '<div style="padding:10px; color:var(--text-muted)">Chưa có mã lỗi cho loại máy này. Vui lòng thêm trong Cài đặt.</div>'}
+            ${faultCodeList || '<div style="padding:10px; color:var(--text-muted)">Chưa có mã lỗi nào. Vui lòng thêm trong Cài đặt.</div>'}
           </div>
         </div>
         <div class="form-group">
