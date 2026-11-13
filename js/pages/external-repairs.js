@@ -119,6 +119,15 @@ const ExternalRepairsPage = {
       const res = await API.getRepairs({ status: 'Báo hỏng' });
       this._reported = res.success ? res.data : [];
     }
+    this._items = (this._items || []).map(it => ({ ...it }));
+
+    const signDate = this._items.find(it => it.sign_date)?.sign_date || this._todayIso();
+
+    // Suggest repair vendors already used on earlier tickets
+    const vendors = [...new Set(this._repairs.flatMap(t => {
+      try { return (typeof t.items === 'string' ? JSON.parse(t.items) : (t.items || [])).map(it => it.vendor).filter(Boolean); }
+      catch { return []; }
+    }))];
 
     const reportedList = id ? '' : `
       <div class="form-group">
@@ -133,23 +142,41 @@ const ExternalRepairsPage = {
       </div>`;
 
     Modal.show({
-      title: id ? 'Cập nhật phiếu sửa chữa ngoài' : 'Tạo phiếu sửa chữa ngoài',
+      title: id ? 'Cập nhật phiếu đề nghị thuê ngoài sửa chữa' : 'Tạo phiếu đề nghị thuê ngoài sửa chữa',
       content: `
         ${reportedList}
-        <div style="margin-bottom: 16px;">
+        <datalist id="dl-ext-vendors">${vendors.map(v => `<option value="${Utils.escapeHtml(v)}"></option>`).join('')}</datalist>
+        <div class="form-row" style="align-items:flex-end; margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Ngày ký (in ở dòng "Ngày" trên phiếu)</label>
+            <input type="date" class="form-input" id="ext-sign-date" value="${Utils.escapeHtml(signDate)}">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Đơn vị sửa chữa (điền nhanh cho tất cả dòng)</label>
+            <div style="display:flex; gap:8px">
+              <input type="text" class="form-input" id="ext-vendor-all" list="dl-ext-vendors" placeholder="VD: Tâm Toản">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.applyVendorAll()">Áp dụng</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
           <button class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.addItem()"><i data-lucide="plus"></i> Thêm dòng</button>
         </div>
         <div class="table-scroll">
-          <table class="data-table data-table-compact" style="min-width: 900px;">
+          <table class="data-table data-table-compact" style="min-width: 1100px;">
             <thead>
               <tr>
-                <th width="40">TT</th>
-                <th width="250">Tên thiết bị / Phụ tùng</th>
-                <th width="250">Tình trạng hỏng hóc</th>
-                <th width="80">ĐVT</th>
-                <th width="80">SL</th>
+                <th width="36">TT</th>
+                <th width="110">Mã sửa chữa</th>
+                <th width="200">Tên thiết bị</th>
+                <th width="140">Đơn vị</th>
+                <th width="170">Tình trạng</th>
+                <th width="70">ĐVT</th>
+                <th width="70">SL</th>
+                <th width="120">Nhóm chi phí</th>
+                <th width="70" style="text-align:center">YC báo giá</th>
                 <th>Ghi chú</th>
-                <th width="50"></th>
+                <th width="44"></th>
               </tr>
             </thead>
             <tbody id="ext-repairs-items-tbody">
@@ -167,18 +194,41 @@ const ExternalRepairsPage = {
     this.renderItems();
   },
 
+  _todayIso() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  },
+
+  // dd/mm/yyyy without leading zeros on day/month, like the company form (9/11/2026)
+  _fmtDate(value) {
+    if (!value) return '';
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [y, m, day] = value.split('-').map(Number);
+      d = new Date(y, m - 1, day);
+    } else {
+      d = new Date(value);
+    }
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  },
+
   _syncItems() {
     const rows = document.querySelectorAll('#ext-repairs-items-tbody tr');
     this._items = Array.from(rows).map((row, idx) => {
-      const inputs = row.querySelectorAll('input');
+      const prev = this._items[idx] || {};
+      const val = (cls) => row.querySelector('.' + cls)?.value ?? '';
       return {
-        name: inputs[0].value,
-        condition: inputs[1].value,
-        uom: inputs[2].value,
-        qty: parseFloat(inputs[3].value) || 0,
-        note: inputs[4].value,
-        repair_id: this._items[idx] ? this._items[idx].repair_id : undefined,
-        department: this._items[idx] ? this._items[idx].department : undefined
+        ...prev,
+        repair_code: val('ei-code'),
+        name: val('ei-name'),
+        vendor: val('ei-vendor'),
+        condition: val('ei-condition'),
+        uom: val('ei-uom'),
+        qty: parseFloat(val('ei-qty')) || 0,
+        cost_group: val('ei-cost'),
+        quote_req: !!row.querySelector('.ei-quote')?.checked,
+        note: val('ei-note')
       };
     });
   },
@@ -190,10 +240,13 @@ const ExternalRepairsPage = {
       if (!r) return;
       this._items.push({
         repair_id: r.id,
+        repair_code: r.id,
         department: r.department || '',
+        cost_group: r.department || '',
+        vendor: document.getElementById('ext-vendor-all')?.value.trim() || '',
         name: r.machine_name + (r.machine_code ? ' (' + r.machine_code + ')' : ''),
         condition: r.fault_description || '',
-        uom: 'cái', qty: 1, note: ''
+        uom: 'cái', qty: 1, quote_req: false, note: ''
       });
     } else {
       this._items = this._items.filter(it => it.repair_id !== repairId);
@@ -201,14 +254,24 @@ const ExternalRepairsPage = {
     this.renderItems();
   },
 
+  applyVendorAll() {
+    const v = document.getElementById('ext-vendor-all')?.value.trim() || '';
+    this._syncItems();
+    this._items.forEach(it => { it.vendor = v; });
+    this.renderItems();
+  },
+
   addItem() {
+    this._syncItems();
     this._items.push({
-      code: '', name: '', unit: '', condition: '', uom: 'cái', qty: 1, category: '', note: ''
+      repair_code: '', name: '', vendor: document.getElementById('ext-vendor-all')?.value.trim() || '',
+      condition: '', uom: 'cái', qty: 1, cost_group: '', quote_req: false, note: ''
     });
     this.renderItems();
   },
 
   removeItem(index) {
+    this._syncItems();
     this._items.splice(index, 1);
     this.renderItems();
   },
@@ -220,21 +283,25 @@ const ExternalRepairsPage = {
   renderItems() {
     const tbody = document.getElementById('ext-repairs-items-tbody');
     if (!tbody) return;
+    const esc = (v) => Utils.escapeHtml(v == null ? '' : String(v));
 
     tbody.innerHTML = this._items.map((it, idx) => `
       <tr>
         <td style="text-align:center">${idx + 1}</td>
-        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.name || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'name', this.value)"></td>
-        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.condition || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'condition', this.value)"></td>
-        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.uom || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'uom', this.value)"></td>
-        <td><input type="number" class="form-input" value="${it.qty || 1}" onchange="ExternalRepairsPage.updateItem(${idx}, 'qty', this.value)" style="width:60px"></td>
-        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.note || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'note', this.value)"></td>
+        <td><input type="text" class="form-input ei-code" value="${esc(it.repair_code ?? it.repair_id ?? '')}"></td>
+        <td><input type="text" class="form-input ei-name" value="${esc(it.name)}"></td>
+        <td><input type="text" class="form-input ei-vendor" list="dl-ext-vendors" value="${esc(it.vendor)}" placeholder="Đơn vị sửa"></td>
+        <td><input type="text" class="form-input ei-condition" value="${esc(it.condition)}"></td>
+        <td><input type="text" class="form-input ei-uom" value="${esc(it.uom)}"></td>
+        <td><input type="number" class="form-input ei-qty" value="${it.qty || 1}" min="0" style="width:60px"></td>
+        <td><input type="text" class="form-input ei-cost" value="${esc(it.cost_group ?? it.department ?? '')}"></td>
+        <td style="text-align:center"><input type="checkbox" class="ei-quote" ${it.quote_req ? 'checked' : ''}></td>
+        <td><input type="text" class="form-input ei-note" value="${esc(it.note)}"></td>
         <td><button type="button" class="btn btn-ghost entry-remove" onclick="ExternalRepairsPage.removeItem(${idx})" title="Xóa dòng"><i data-lucide="x"></i></button></td>
       </tr>
     `).join('');
   },
 
-  
   async saveTicketAndExportPDF() {
     const savedId = await this.saveTicket();
     if (savedId) {
@@ -247,7 +314,7 @@ const ExternalRepairsPage = {
   async saveTicket() {
     // Collect active input values just in case onchange hasn't fired
     this._syncItems();
-    this._items = this._items.filter(it => it.name.trim() !== '');
+    this._items = this._items.filter(it => (it.name || '').trim() !== '');
 
     if (this._items.length === 0) {
       Toast.error('Vui lòng nhập ít nhất 1 thiết bị/vật tư');
@@ -260,7 +327,10 @@ const ExternalRepairsPage = {
       return false;
     }
 
-    const ticket = this._editingId ? this._repairs.find(r => r.id === this._editingId) : { status: 'Đang sửa' };
+    const signDate = document.getElementById('ext-sign-date')?.value || this._todayIso();
+    this._items.forEach(it => { it.sign_date = signDate; });
+
+    const ticket = this._editingId ? { ...this._repairs.find(r => r.id === this._editingId) } : { status: 'Đang sửa' };
     ticket.items = JSON.stringify(this._items);
 
     Toast.info('Đang lưu...');
@@ -281,7 +351,7 @@ const ExternalRepairsPage = {
       Toast.warning('Thư viện jsPDF chưa sẵn sàng.');
       return;
     }
-    
+
     let ticket = this._repairs.find(r => r.id === id);
     if (!ticket) {
       await this.loadData();
@@ -297,18 +367,18 @@ const ExternalRepairsPage = {
     }
     items = items || [];
 
-    // Fill "Bộ phận / Đơn vị" from the linked fault reports when the line has no department yet
-    const missingDeptIds = items.filter(it => it.repair_id && !it.department).map(it => it.repair_id);
+    // Older tickets: take the cost group (department) from the linked fault report
+    const missingDeptIds = items.filter(it => it.repair_id && !it.cost_group && !it.department).map(it => it.repair_id);
     if (missingDeptIds.length) {
       try {
         API.init();
         const { data: linked } = await API.supabase.from('repairs').select('id, department').in('id', missingDeptIds);
         items = items.map(it => {
-          if (it.department || !it.repair_id) return it;
+          if (it.cost_group || it.department || !it.repair_id) return it;
           const r = (linked || []).find(x => x.id === it.repair_id);
           return r ? { ...it, department: r.department || '' } : it;
         });
-      } catch (e) { /* department column stays empty */ }
+      } catch (e) { /* column stays empty */ }
     }
 
     const fs = await API.getFormSettings();
@@ -320,116 +390,134 @@ const ExternalRepairsPage = {
       return;
     }
 
-    const dateObj = new Date(ticket.created_at || Date.now());
-    const dd = String(dateObj.getDate()).padStart(2, '0');
-    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const yy = String(dateObj.getFullYear()).slice(-2);
-    const dateFormatted = `${dd}/${mm}/${yy}`;
+    const createdText = this._fmtDate(ticket.created_at || new Date().toISOString());
+    const signText = this._fmtDate(items.find(it => it.sign_date)?.sign_date) || this._fmtDate(new Date().toISOString());
 
     try {
       Toast.info('Đang tạo PDF...');
       const { jsPDF: JsPDF } = window.jspdf || { jsPDF: window.jsPDF };
-      // Landscape, mm
+      // Landscape A4, mm
       const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      
+
       doc.addFileToVFS('Times-Regular.ttf', FONT_TIMES_REGULAR_B64);
       doc.addFont('Times-Regular.ttf', 'TinosFont', 'normal');
       doc.addFileToVFS('Times-Bold.ttf', FONT_TIMES_BOLD_B64);
       doc.addFont('Times-Bold.ttf', 'TinosFont', 'bold');
       doc.addFont('Times-Bold.ttf', 'TinosFont', 'bolditalic');
-      
       doc.setFont('TinosFont');
 
+      const MARGIN = 10;
+      const PAGE_W = 297;
+      const lineStyle = { lineWidth: 0.2, lineColor: [0, 0, 0], textColor: [0, 0, 0] };
+
+      // ── Header: logo | company name / form title | 4 info lines ──
       doc.autoTable({
         startY: 10,
-        margin: { left: 10, right: 10 },
+        margin: { left: MARGIN, right: MARGIN },
         theme: 'plain',
         body: [
-          ['', 'CÔNG TY TNHH THẮNG LỢI', 'Mã hiệu: BM.TB.04.01\nĐơn vị đề nghị: P.Cải tiến'],
-          ['', 'PHIẾU YÊU CẦU\nTHUÊ NGOÀI SỬA CHỮA', 'Số: ' + (id || '') + '\nNgày lập: ' + dateFormatted]
+          [
+            { content: '', rowSpan: 4 },
+            { content: 'CÔNG TY TNHH THẮNG LỢI', rowSpan: 2, styles: { fontStyle: 'bold', fontSize: 12 } },
+            'Mã hiệu :  BM.TB.04.01'
+          ],
+          ['Đơn vị đề nghị:  Phòng Thiết bị'],
+          [
+            { content: 'PHIẾU ĐỀ NGHỊ THUÊ NGOÀI SỬA CHỮA', rowSpan: 2, styles: { fontStyle: 'bold', fontSize: 12 } },
+            'Số phiếu:  ' + (ticket.id || '')
+          ],
+          ['Ngày lập :  ' + createdText]
         ],
         columnStyles: {
-          0: { cellWidth: 55, minCellHeight: 15 }, 
-          1: { cellWidth: 170, halign: 'center', valign: 'middle', fontStyle: 'bold' },
-          2: { cellWidth: 52, halign: 'left', valign: 'middle' } 
+          0: { cellWidth: 38 },
+          1: { cellWidth: 184, halign: 'center', valign: 'middle' },
+          2: { cellWidth: 55, halign: 'left', valign: 'middle' }
         },
-        styles: { font: 'TinosFont', lineWidth: 0.2, lineColor: [0, 0, 0], textColor: [0, 0, 0], fontSize: 10 },
-        didParseCell: function(data) {
-          if (data.row.index === 0 && data.column.index === 0) {
-            data.cell.styles.valign = 'middle';
-            data.cell.rowSpan = 2;
-          }
-          if (data.row.index === 1 && data.column.index === 1) data.cell.styles.fontSize = 12; 
-          if (data.row.index === 0 && data.column.index === 1) data.cell.styles.fontSize = 12; 
-        },
+        styles: { font: 'TinosFont', fontSize: 9.5, cellPadding: { top: 1.6, bottom: 1.6, left: 1.5, right: 1.5 }, minCellHeight: 7.5, ...lineStyle },
         didDrawCell: function(data) {
           if (data.row.index === 0 && data.column.index === 0) {
-             const logoW = 31; const logoH = 15;
-             const xPos = data.cell.x + (data.cell.width - logoW) / 2;
-             const yPos = data.cell.y + (data.cell.height - logoH) / 2;
-             doc.addImage('data:image/jpeg;base64,' + LOGO_VICO_B64, 'JPEG', xPos, yPos, logoW, logoH);
+            const logoW = 28;
+            const logoH = 13.5;
+            const xPos = data.cell.x + (data.cell.width - logoW) / 2;
+            const yPos = data.cell.y + (data.cell.height - logoH) / 2;
+            doc.addImage('data:image/jpeg;base64,' + LOGO_VICO_B64, 'JPEG', xPos, yPos, logoW, logoH);
           }
         }
       });
 
+      // Empty band under the header (as on the company form)
+      const bandY = doc.lastAutoTable.finalY;
+      const bandH = 12;
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.2);
+      doc.rect(MARGIN, bandY, PAGE_W - MARGIN * 2, bandH);
+
+      // ── Item table ──
       const tableData = items.map((item, index) => [
-        (index + 1).toString(),
-        ticket.id,
+        String(index + 1),
+        item.repair_code || item.repair_id || '',
         item.name || '',
-        item.department || '',
+        item.vendor || '',
         item.condition || '',
         item.uom || '',
-        item.qty.toString(),
-        '', // Phân loại để trống
+        item.qty != null && item.qty !== '' ? String(item.qty) : '',
+        item.category || '',
+        item.cost_group || item.department || '',
+        item.quote_req ? 'X' : '',
+        '',
+        '',
         item.note || ''
       ]);
 
-      const emptyRowsNeeded = Math.max(0, 5 - items.length);
-      for(let i=0; i<emptyRowsNeeded; i++) {
-        tableData.push(['','','','','','','','','']);
-      }
-
       doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 5, 
-        margin: { left: 10, right: 10 },
-        head: [['TT', 'Mã số / Mã hiệu', 'Tên máy móc / thiết bị cần sửa', 'Bộ phận / Đơn vị', 'Tình trạng / Hư hỏng', 'ĐVT', 'Số lượng', 'Phân loại / Nhóm CP', 'Ghi chú']],
+        startY: bandY + bandH,
+        margin: { left: MARGIN, right: MARGIN },
+        head: [['STT', 'Mã Sửa chữa', 'Tên thiết bị', 'Đơn vị', 'Tình trạng', 'Đơn vị tính', 'Số lượng', 'Mã/Tên hạng mục', 'Nhóm chi phí', 'Yêu cầu báo giá', 'Ngày ra cổng', 'Ngày ra cổng', 'Ghi chú']],
         body: tableData,
         theme: 'grid',
-        headStyles: { font: 'TinosFont', fillColor: [255, 255, 255], textColor: [0, 0, 0], fontSize: 9, fontStyle: 'bold', lineWidth: 0.2, lineColor: [0, 0, 0], halign: 'center', valign: 'middle' },
-        bodyStyles: { font: 'TinosFont', fontSize: 9, lineWidth: 0.2, lineColor: [0, 0, 0], textColor: [0,0,0], minCellHeight: 12, valign: 'middle' },
-        styles: { cellPadding: 1.5, overflow: 'linebreak' },
+        headStyles: { font: 'TinosFont', fillColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', halign: 'center', valign: 'middle', ...lineStyle },
+        bodyStyles: { font: 'TinosFont', fontSize: 9, minCellHeight: 13, valign: 'middle', halign: 'center', ...lineStyle },
+        styles: { cellPadding: 1.2, overflow: 'linebreak' },
         columnStyles: {
-          0: { cellWidth: 10, halign: 'center' }, // line_no
-          1: { cellWidth: 27, halign: 'center' }, // repair_code (đủ rộng để mã SCCC-YY-NNNN nằm trên 1 dòng)
-          2: { cellWidth: 'auto' }, // equipment_name
-          3: { cellWidth: 30 }, // unit_name
-          4: { cellWidth: 25 }, // condition
-          5: { cellWidth: 12, halign: 'center' }, // uom_name
-          6: { cellWidth: 15, halign: 'center' }, // qty
-          7: { cellWidth: 25, halign: 'center' }, // category_name
-          8: { cellWidth: 30 } // note
+          0: { cellWidth: 10 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 24 },
+          5: { cellWidth: 13 },
+          6: { cellWidth: 14 },
+          7: { cellWidth: 21 },
+          8: { cellWidth: 19 },
+          9: { cellWidth: 15, fontStyle: 'bold', fontSize: 11 },
+          10: { cellWidth: 15 },
+          11: { cellWidth: 15 },
+          12: { cellWidth: 32, halign: 'left' }
         }
       });
 
-      let finalY = doc.lastAutoTable.finalY + 4;
-      const cityDate = fs.city || '';
+      // ── "Ngày" + signatures: Người lập | Trưởng đơn vị | Giám đốc sản xuất ──
+      let finalY = doc.lastAutoTable.finalY + 8;
+      if (finalY > 165) { doc.addPage(); finalY = 20; }
+
       doc.setFontSize(10);
       doc.setFont('TinosFont', 'bolditalic');
-      doc.text(cityDate, 237, finalY + 4, { align: 'right' });
+      doc.text('Ngày', 196, finalY, { align: 'right' });
+      doc.setFont('TinosFont', 'normal');
+      doc.setFontSize(11);
+      doc.text(signText, 199, finalY);
 
-      finalY += 14;
+      finalY += 9;
+      const cols = [50, 135, 230];
       doc.setFontSize(10);
       doc.setFont('TinosFont', 'bold');
-      doc.text('NGƯỜI LẬP', 45, finalY, { align: 'center' });
-      doc.text('XEM XÉT', 115, finalY, { align: 'center' });
-      doc.text('TRƯỞNG ĐƠN VỊ', 185, finalY, { align: 'center' });
-      doc.text('PHÊ DUYỆT', 250, finalY, { align: 'center' });
-      
-      finalY += 25;
-      doc.text(fs.creator || '', 45, finalY, { align: 'center' });
-      doc.text(fs.reviewer || '', 115, finalY, { align: 'center' });
-      doc.text(fs.head || '', 185, finalY, { align: 'center' });
-      doc.text(fs.approver || '', 250, finalY, { align: 'center' });
+      doc.text('Người lập', cols[0], finalY, { align: 'center' });
+      doc.text('Trưởng đơn vị', cols[1], finalY, { align: 'center' });
+      doc.text('Giám đốc sản xuất', cols[2], finalY, { align: 'center' });
+
+      finalY += 26;
+      doc.text(fs.creator || '', cols[0], finalY, { align: 'center' });
+      doc.text(fs.head || '', cols[1], finalY, { align: 'center' });
+      doc.text(fs.approver || '', cols[2], finalY, { align: 'center' });
 
       doc.save('Phieu_Sua_Chua_Ngoai_' + ticket.id + '.pdf');
       Toast.success('Đã xuất phiếu thành công');
