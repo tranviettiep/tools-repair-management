@@ -403,20 +403,18 @@ const SettingsPage = {
   loadFormSettings() {
     if (!document.getElementById('fs-creator')) return;
     const userId = Auth.currentUser?.username || 'default';
-    const remoteFs = this._getConfigValue('form_settings_' + userId, null);
+    const remoteFs = this._getConfigValue('form_settings_' + userId, null)
+      || this._getConfigValue('form_settings_admin', null);
     const localFs = Utils.storage.get('form_settings_' + userId, {});
     const fs = remoteFs || localFs || {};
     if (remoteFs) {
-      Utils.storage.set('form_settings_' + userId, remoteFs);
+      Utils.storage.set('form_settings_' + userId, fs);
     }
     const fields = ['category','purpose','buyer','delivery','creator','receiver','reviewer','head','approver','city'];
     fields.forEach(f => {
       const el = document.getElementById('fs-' + f);
-      if (el && fs[f] !== undefined) el.value = fs[f];
+      if (el) el.value = fs[f] ?? '';
     });
-    // Default creator to current user full name if empty
-    const creatorEl = document.getElementById('fs-creator');
-    if (creatorEl && !creatorEl.value) creatorEl.value = Auth.currentUser?.full_name || '';
   },
 
   async saveFormSettings() {

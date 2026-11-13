@@ -276,5 +276,147 @@ test.describe('Đồng bộ Thông tin biểu mẫu ký tên & Xuất tài liệ
     await expect(modal.locator('.r-machine').first()).toHaveValue(machineCode);
   });
 
+  test('TC04 - Khi để trống Người lập phiếu thì cả ô Cài đặt lẫn file PDF/Excel xuất ra đều phải để trống (không tự điền Quản trị viên)', async ({ browser }) => {
+    test.setTimeout(90000);
+    const origCfgRows = await (await fetch(`${SUPABASE_REST}/config?key=eq.form_settings_admin&select=value`, { headers: SB_HEADERS })).json();
+    const origFormSettingsJson: string = origCfgRows?.[0]?.value || JSON.stringify({
+      category: '', purpose: '', buyer: '', delivery: '',
+      creator: '', receiver: '', reviewer: '', head: '', approver: '', city: ''
+    });
+
+    const context1 = await browser.newContext();
+    const page1 = await context1.newPage();
+
+    let createdExtId: string | null = null;
+    let createdProposalId: string | null = null;
+
+    try {
+      await page1.goto('/');
+      await page1.evaluate(() => localStorage.clear());
+      await page1.goto('/');
+      await page1.locator('#login-username').fill('admin');
+      await page1.locator('#login-password').fill('admin');
+      await page1.locator('#login-btn').click();
+      await expect(page1).toHaveURL(/#\/dashboard/);
+
+      await page1.goto('/#/settings');
+      await expect(page1.locator('#fs-creator')).toBeVisible();
+      await page1.waitForTimeout(600);
+
+      // Xóa trắng Người lập phiếu và bấm Lưu
+      await page1.locator('#fs-creator').fill('');
+      await page1.getByRole('button', { name: /Lưu thông tin biểu mẫu/ }).click();
+      await expect(page1.locator('.toast.toast-success')).toBeVisible();
+
+      // Ngay trên Máy 1 sau khi lưu: ô Người lập phiếu phải giữ nguyên rỗng '' (không bị nhảy lại thành 'Quản trị viên')
+      await expect(page1.locator('#fs-creator')).toHaveValue('');
+
+      // Tạo tạm 1 phiếu sửa ngoài & 1 phiếu đề xuất vật tư để kiểm tra xuất PDF/Excel khi creator = ''
+      const tempIds = await page1.evaluate(async () => {
+        // @ts-ignore
+        const extRes = await API.saveExternalRepair({
+          status: 'Đang sửa',
+          items: [{ name: 'Máy test trống chữ ký', condition: 'Cháy', uom: 'cái', qty: 1, note: '' }]
+        });
+        // @ts-ignore
+        const propRes = await API.saveProposal({
+          status: 'Nháp',
+          items: [{ code: 'PT-EMPTY', name: 'Vật tư test trống chữ ký', unit: 'cái', qty: 1, stock: 0, needDate: '2026-11-20', priceReq: '' }]
+        });
+        return {
+          extId: extRes.data?.id || null,
+          propId: propRes.data?.id || null
+        };
+      });
+      createdExtId = tempIds.extId;
+      createdProposalId = tempIds.propId;
+
+      // Mở Máy 2 (context mới) kiểm tra cả trang Cài đặt lẫn PDF/Excel xuất ra
+      const context2 = await browser.newContext({ acceptDownloads: true });
+      const page2 = await context2.newPage();
+      await page2.goto('/');
+      await page2.locator('#login-username').fill('admin');
+      await page2.locator('#login-password').fill('admin');
+      await page2.locator('#login-btn').click();
+      await expect(page2).toHaveURL(/#\/dashboard/);
+
+      await page2.goto('/#/settings');
+      await expect(page2.locator('#fs-creator')).toBeVisible();
+      await page2.waitForTimeout(600);
+      await expect(page2.locator('#fs-creator')).toHaveValue('');
+
+      // Spy jsPDF & saveAs trên Máy 2
+      await page2.evaluate(() => {
+        (window as any).__pdfTexts = [];
+        const OrigJsPDF = (window as any).jspdf.jsPDF;
+        const PatchedJsPDF: any = function (...args: any[]) {
+          const instance = new OrigJsPDF(...args);
+          const origText = instance.text.bind(instance);
+          instance.text = function (...tArgs: any[]) {
+            const text = tArgs[0];
+            (window as any).__pdfTexts.push(Array.isArray(text) ? text.join(' ') : String(text));
+            return origText(...tArgs);
+          };
+          return instance;
+        };
+        Object.assign(PatchedJsPDF, OrigJsPDF);
+        PatchedJsPDF.prototype = OrigJsPDF.prototype;
+        (window as any).jspdf = { ...(window as any).jspdf, jsPDF: PatchedJsPDF };
+
+        const origSaveAs = (window as any).saveAs;
+        (window as any).__lastSavedBlob = null;
+        (window as any).saveAs = function (blob: Blob, ...rest: any[]) {
+          (window as any).__lastSavedBlob = blob;
+          return origSaveAs.call(this, blob, ...rest);
+        };
+      });
+
+      // Xuất PDF Sửa chữa ngoài: không được có chữ 'Quản trị viên'
+      await page2.goto('/#/external-repairs');
+      await expect(page2.locator('#external-repairs-tbody')).toContainText(createdExtId!, { timeout: 10000 });
+      const extPdfPromise = page2.waitForEvent('download', { timeout: 15000 });
+      await page2.locator('#external-repairs-tbody tr', { hasText: createdExtId! }).getByRole('button', { name: /Xuất PDF/ }).click();
+      await extPdfPromise;
+      const extPdfTexts = await page2.evaluate(() => (window as any).__pdfTexts as string[]);
+      expect(extPdfTexts).not.toContain('Quản trị viên');
+
+      // Xuất PDF & Excel Đề xuất vật tư: không được có chữ 'Quản trị viên'
+      await page2.goto('/#/spare-parts');
+      await expect(page2.locator('#parts-content .spinner')).toBeHidden({ timeout: 10000 });
+      await page2.locator('.tab', { hasText: 'Đề xuất vật tư' }).click();
+      const propRow = page2.locator('#parts-content tbody tr', { hasText: createdProposalId! });
+      await expect(propRow).toBeVisible({ timeout: 10000 });
+
+      await page2.evaluate(() => { (window as any).__pdfTexts = []; });
+      const propPdfPromise = page2.waitForEvent('download', { timeout: 15000 });
+      await propRow.getByRole('button', { name: 'Xuất PDF' }).click();
+      await propPdfPromise;
+      const propPdfTexts = await page2.evaluate(() => (window as any).__pdfTexts as string[]);
+      expect(propPdfTexts).not.toContain('Quản trị viên');
+
+      const propExcelPromise = page2.waitForEvent('download', { timeout: 15000 });
+      await propRow.getByRole('button', { name: 'Xuất Excel' }).click();
+      await propExcelPromise;
+      const excelSigCell = await page2.evaluate(async () => {
+        const blob: Blob = (window as any).__lastSavedBlob;
+        if (!blob) return '';
+        const buf = await blob.arrayBuffer();
+        const wb = new (window as any).ExcelJS.Workbook();
+        await wb.xlsx.load(buf);
+        const ws = wb.getWorksheet(1);
+        return String(ws.getCell('A13').value || '');
+      });
+      expect(excelSigCell).not.toContain('Quản trị viên');
+      expect(excelSigCell.trim()).toBe('NGƯỜI LẬP');
+
+      await context2.close();
+    } finally {
+      await sbDelete('external_repairs', createdExtId);
+      await sbDelete('proposals', createdProposalId);
+      await sbRestoreFormSettings(origFormSettingsJson);
+      await context1.close().catch(() => {});
+    }
+  });
+
 });
 

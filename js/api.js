@@ -623,18 +623,17 @@ const API = {
 
   async getFormSettings(username = null) {
     const userId = username || (typeof Auth !== 'undefined' && Auth.currentUser?.username) || 'default';
-    const defaultCreator = (typeof Auth !== 'undefined' && Auth.currentUser?.full_name) || '';
     const defaults = {
-      category: 'Sửa chữa máy công cụ',
-      purpose: 'Sửa chữa & dự phòng',
-      buyer: 'Phòng VT',
+      category: '',
+      purpose: '',
+      buyer: '',
       delivery: '',
-      creator: defaultCreator,
+      creator: '',
       receiver: '',
       reviewer: '',
       head: '',
       approver: '',
-      city: 'Ninh Bình'
+      city: ''
     };
 
     try {
@@ -644,7 +643,7 @@ const API = {
         if (userRow && userRow.value) {
           const parsed = JSON.parse(userRow.value);
           Utils.storage.set('form_settings_' + userId, parsed);
-          return { ...defaults, ...parsed, creator: parsed.creator || defaultCreator };
+          return { ...defaults, ...parsed };
         }
         // Fallback shared fields from admin settings if current user has not configured their own
         const adminRow = res.data.find(c => c.key === 'form_settings_admin');
@@ -652,13 +651,9 @@ const API = {
           const adminParsed = JSON.parse(adminRow.value);
           const localUser = Utils.storage.get('form_settings_' + userId, null);
           if (localUser) {
-            return { ...defaults, ...adminParsed, ...localUser, creator: localUser.creator || defaultCreator };
+            return { ...defaults, ...adminParsed, ...localUser };
           }
-          return {
-            ...defaults,
-            ...adminParsed,
-            creator: userId === 'admin' ? (adminParsed.creator || defaultCreator) : (defaultCreator || adminParsed.creator)
-          };
+          return { ...defaults, ...adminParsed };
         }
       }
     } catch (e) {
@@ -666,7 +661,7 @@ const API = {
     }
 
     const local = Utils.storage.get('form_settings_' + userId, {});
-    return { ...defaults, ...local, creator: local.creator || defaultCreator };
+    return { ...defaults, ...local };
   },
 
   async saveFormSettings(username, fs) {
