@@ -177,7 +177,8 @@ const ExternalRepairsPage = {
         uom: inputs[2].value,
         qty: parseFloat(inputs[3].value) || 0,
         note: inputs[4].value,
-        repair_id: this._items[idx] ? this._items[idx].repair_id : undefined
+        repair_id: this._items[idx] ? this._items[idx].repair_id : undefined,
+        department: this._items[idx] ? this._items[idx].department : undefined
       };
     });
   },
@@ -189,6 +190,7 @@ const ExternalRepairsPage = {
       if (!r) return;
       this._items.push({
         repair_id: r.id,
+        department: r.department || '',
         name: r.machine_name + (r.machine_code ? ' (' + r.machine_code + ')' : ''),
         condition: r.fault_description || '',
         uom: 'cái', qty: 1, note: ''
@@ -222,11 +224,11 @@ const ExternalRepairsPage = {
     tbody.innerHTML = this._items.map((it, idx) => `
       <tr>
         <td style="text-align:center">${idx + 1}</td>
-        <td><input type="text" class="form-input" value="${it.name || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'name', this.value)"></td>
-        <td><input type="text" class="form-input" value="${it.condition || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'condition', this.value)"></td>
-        <td><input type="text" class="form-input" value="${it.uom || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'uom', this.value)"></td>
+        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.name || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'name', this.value)"></td>
+        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.condition || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'condition', this.value)"></td>
+        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.uom || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'uom', this.value)"></td>
         <td><input type="number" class="form-input" value="${it.qty || 1}" onchange="ExternalRepairsPage.updateItem(${idx}, 'qty', this.value)" style="width:60px"></td>
-        <td><input type="text" class="form-input" value="${it.note || ''}" onchange="ExternalRepairsPage.updateItem(${idx}, 'note', this.value)"></td>
+        <td><input type="text" class="form-input" value="${Utils.escapeHtml(it.note || '')}" onchange="ExternalRepairsPage.updateItem(${idx}, 'note', this.value)"></td>
         <td><button type="button" class="btn btn-ghost entry-remove" onclick="ExternalRepairsPage.removeItem(${idx})" title="Xóa dòng"><i data-lucide="x"></i></button></td>
       </tr>
     `).join('');
@@ -293,8 +295,30 @@ const ExternalRepairsPage = {
     } catch (e) {
       items = [];
     }
+    items = items || [];
+
+    // Fill "Bộ phận / Đơn vị" from the linked fault reports when the line has no department yet
+    const missingDeptIds = items.filter(it => it.repair_id && !it.department).map(it => it.repair_id);
+    if (missingDeptIds.length) {
+      try {
+        API.init();
+        const { data: linked } = await API.supabase.from('repairs').select('id, department').in('id', missingDeptIds);
+        items = items.map(it => {
+          if (it.department || !it.repair_id) return it;
+          const r = (linked || []).find(x => x.id === it.repair_id);
+          return r ? { ...it, department: r.department || '' } : it;
+        });
+      } catch (e) { /* department column stays empty */ }
+    }
 
     const fs = await API.getFormSettings();
+
+    try {
+      await Utils.loadTemplateData();
+    } catch (e) {
+      Toast.error(e.message);
+      return;
+    }
 
     const dateObj = new Date(ticket.created_at || Date.now());
     const dd = String(dateObj.getDate()).padStart(2, '0');
@@ -352,7 +376,7 @@ const ExternalRepairsPage = {
         (index + 1).toString(),
         ticket.id,
         item.name || '',
-        '', // Bộ phận để trống
+        item.department || '',
         item.condition || '',
         item.uom || '',
         item.qty.toString(),
@@ -376,14 +400,14 @@ const ExternalRepairsPage = {
         styles: { cellPadding: 1.5, overflow: 'linebreak' },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center' }, // line_no
-          1: { cellWidth: 20, halign: 'center' }, // repair_code
+          1: { cellWidth: 27, halign: 'center' }, // repair_code (đủ rộng để mã SCCC-YY-NNNN nằm trên 1 dòng)
           2: { cellWidth: 'auto' }, // equipment_name
           3: { cellWidth: 30 }, // unit_name
           4: { cellWidth: 25 }, // condition
           5: { cellWidth: 12, halign: 'center' }, // uom_name
           6: { cellWidth: 15, halign: 'center' }, // qty
           7: { cellWidth: 25, halign: 'center' }, // category_name
-          8: { cellWidth: 35 } // note
+          8: { cellWidth: 30 } // note
         }
       });
 

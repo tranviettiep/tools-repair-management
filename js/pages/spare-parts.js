@@ -547,6 +547,12 @@ const SparePartsPage = {
     }
 
     const fs = await this._getFormSettings();
+    try {
+      await Utils.loadTemplateData();
+    } catch (e) {
+      Toast.error(e.message);
+      return;
+    }
     const dateStr = new Date().toISOString().split('T')[0];
     const dateObj = new Date();
     
@@ -741,6 +747,12 @@ const SparePartsPage = {
     }
 
     const fs = await this._getFormSettings();
+    try {
+      await Utils.loadTemplateData();
+    } catch (e) {
+      Toast.error(e.message);
+      return;
+    }
     const dateStr = new Date().toISOString().split('T')[0];
     const dateObj = new Date(dateStr);
 

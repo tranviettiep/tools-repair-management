@@ -1,11 +1,11 @@
-// ============================================
+﻿// ============================================
 // sw.js - Service worker: lets the app be installed and open without a network
 // ============================================
 // App files: network first (staff always get the latest version), cached copy when offline.
 // CDN libraries: served from cache, refreshed in the background.
 // Supabase API calls are never cached, so data shown is always live.
 
-const CACHE = 'trm-v4';
+const CACHE = 'trm-v5';
 const CDN_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'cdn.sheetjs.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {

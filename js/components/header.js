@@ -113,8 +113,98 @@ const Header = {
         </div>
       `,
       size: 'sm',
-      footer: `<button class="btn btn-secondary" data-modal-close>Đóng</button>`
+      footer: `
+        <button class="btn btn-secondary" data-modal-close>Đóng</button>
+        <button class="btn btn-secondary" id="btn-open-form-settings"><i data-lucide="pen-line"></i> Chữ ký biểu mẫu</button>
+        <button class="btn btn-primary" id="btn-open-change-password"><i data-lucide="key-round"></i> Đổi mật khẩu</button>
+      `
     });
+    document.getElementById('btn-open-change-password').onclick = () => { Modal.closeAll(); this.showChangePassword(); };
+    document.getElementById('btn-open-form-settings').onclick = () => { Modal.closeAll(); this.showFormSettings(); };
+  },
+
+  showChangePassword() {
+    const modal = Modal.show({
+      title: '<i data-lucide="key-round"></i> Đổi mật khẩu',
+      content: `
+        <form onsubmit="return false" autocomplete="off">
+          <div class="form-group">
+            <label>Mật khẩu hiện tại <span class="required">*</span></label>
+            <input type="password" class="form-input" id="f-pw-old" autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu mới <span class="required">*</span></label>
+            <input type="password" class="form-input" id="f-pw-new" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Nhập lại mật khẩu mới <span class="required">*</span></label>
+            <input type="password" class="form-input" id="f-pw-confirm" autocomplete="new-password">
+          </div>
+        </form>
+      `,
+      size: 'sm',
+      footer: `
+        <button class="btn btn-secondary" data-modal-close>Hủy</button>
+        <button class="btn btn-primary" id="btn-save-password"><i data-lucide="save"></i> Lưu mật khẩu</button>
+      `
+    });
+    document.getElementById('btn-save-password').onclick = async () => {
+      const oldPw = document.getElementById('f-pw-old').value;
+      const newPw = document.getElementById('f-pw-new').value;
+      const confirmPw = document.getElementById('f-pw-confirm').value;
+      if (!oldPw || !newPw) { Toast.warning('Vui lòng nhập đầy đủ mật khẩu'); return; }
+      if (newPw.length < 4) { Toast.warning('Mật khẩu mới phải có ít nhất 4 ký tự'); return; }
+      if (newPw !== confirmPw) { Toast.warning('Mật khẩu nhập lại không khớp'); return; }
+      if (newPw === oldPw) { Toast.warning('Mật khẩu mới phải khác mật khẩu hiện tại'); return; }
+      const res = await API.changePassword(Auth.currentUser.id, oldPw, newPw);
+      if (res.success) {
+        Toast.success('Đã đổi mật khẩu thành công');
+        modal.close();
+      } else {
+        Toast.error(res.error || 'Không đổi được mật khẩu');
+      }
+    };
+  },
+
+  // Personal signature / form info used when exporting proposals & external-repair PDFs.
+  // Available to every account (non-admins cannot open the Settings page).
+  async showFormSettings() {
+    const fs = await API.getFormSettings();
+    const fields = [
+      ['category', 'Tên / Mã hạng mục công trình'], ['purpose', 'Mục đích sử dụng'],
+      ['buyer', 'Người mua / NCC'], ['delivery', 'Vị trí giao hàng'],
+      ['creator', 'Người lập phiếu'], ['receiver', 'Người nhận & kiểm tra hàng'],
+      ['reviewer', 'Người xem xét'], ['head', 'Trưởng đơn vị'],
+      ['approver', 'Người phê duyệt (Giám đốc)'], ['city', 'Thành phố / Địa điểm ký']
+    ];
+    const rows = [];
+    for (let i = 0; i < fields.length; i += 2) {
+      rows.push(`<div class="form-row">${fields.slice(i, i + 2).map(([k, label]) => `
+        <div class="form-group">
+          <label>${label}</label>
+          <input type="text" class="form-input" id="pfs-${k}" value="${Utils.escapeHtml(fs[k] || '')}">
+        </div>`).join('')}</div>`);
+    }
+    const modal = Modal.show({
+      title: '<i data-lucide="pen-line"></i> Chữ ký & thông tin biểu mẫu',
+      content: `<p class="text-muted" style="margin-bottom:12px">Lưu riêng cho tài khoản <strong>${Utils.escapeHtml(Auth.currentUser.username)}</strong>. Để trống ô nào thì ô đó trên phiếu in sẽ để trống.</p>${rows.join('')}`,
+      size: 'lg',
+      footer: `
+        <button class="btn btn-secondary" data-modal-close>Hủy</button>
+        <button class="btn btn-primary" id="btn-save-pfs"><i data-lucide="save"></i> Lưu</button>
+      `
+    });
+    document.getElementById('btn-save-pfs').onclick = async () => {
+      const data = {};
+      fields.forEach(([k]) => { data[k] = document.getElementById('pfs-' + k).value.trim(); });
+      const res = await API.saveFormSettings(Auth.currentUser.username, data);
+      if (res.success) {
+        Toast.success('Đã lưu thông tin biểu mẫu');
+        modal.close();
+      } else {
+        Toast.error(res.error || 'Lỗi khi lưu thông tin biểu mẫu');
+      }
+    };
   },
 
   updateNotificationBadge(count) {

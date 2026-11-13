@@ -4,16 +4,6 @@
 
 const App = {
   async init() {
-    // Restore backend config
-    const savedUrl = Utils.storage.get('gas_url');
-    if (savedUrl) API.BASE_URL = savedUrl;
-    const savedMock = Utils.storage.get('mock_mode');
-    if (savedMock !== null) {
-       // Tạm thời vô hiệu hóa việc đọc cấu hình Production để ép về Demo
-       // API.MOCK_MODE = savedMock;
-       API.MOCK_MODE = true; 
-    }
-
     ThemeManager.init();
     CommandPalette.init();
 
@@ -134,9 +124,6 @@ const App = {
               Đăng nhập
             </button>
           </form>
-          <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:0.8rem">
-            Demo: Nhập bất kỳ username có sẵn (admin, truongpxa, ktv_binh...)
-          </p>
         </div>
       </div>
     `;

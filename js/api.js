@@ -46,10 +46,50 @@ const API = {
     }
   },
 
-  async verifyToken() {
-    // Basic verification - assume token is valid if it exists for now 
-    // In a real app with Supabase Auth, we'd check session
-    return { success: true };
+  // Re-check the stored session against the users table: account still exists, is active,
+  // and pick up any role/department/name change made by an admin since the last login.
+  async verifyToken(userId) {
+    this.init();
+    if (!userId) return { success: false, error: 'Phiên đăng nhập không hợp lệ' };
+    try {
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data || data.is_active === false) {
+        return { success: false, error: 'Tài khoản đã bị khóa hoặc không còn tồn tại' };
+      }
+      const user = { ...data };
+      delete user.password_hash;
+      return { success: true, data: user };
+    } catch (e) {
+      // Network problem (e.g. app opened offline): keep the local session instead of logging the user out
+      console.warn('verifyToken: could not reach server, keeping local session', e);
+      return { success: true, offline: true };
+    }
+  },
+
+  async changePassword(userId, oldPassword, newPassword) {
+    this.init();
+    try {
+      const oldHash = await Utils.hashPassword(oldPassword);
+      const { data: match, error: selErr } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .eq('password_hash', oldHash)
+        .maybeSingle();
+      if (selErr) throw selErr;
+      if (!match) return { success: false, error: 'Mật khẩu hiện tại không đúng' };
+      const newHash = await Utils.hashPassword(newPassword);
+      const { error } = await this.supabase.from('users').update({ password_hash: newHash }).eq('id', userId);
+      if (error) throw error;
+      return { success: true };
+    } catch (e) {
+      return this._handleError(e);
+    }
   },
 
   async logout() {
@@ -156,20 +196,34 @@ const API = {
     return max + 1;
   },
 
+  // Insert a row whose id is "<prefix><seq>", retrying with the next number when two users
+  // create a ticket at the same moment and hit a duplicate primary key (Postgres 23505).
+  async _insertWithSeqId(table, item, prefix, pad, idOf = (seq) => prefix + String(seq).padStart(pad, '0'), seqFilterPrefix = prefix) {
+    let lastError = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      let q = this.supabase.from(table).select('id');
+      if (seqFilterPrefix) q = q.like('id', `${seqFilterPrefix}%`);
+      const { data: existing } = await q;
+      const seq = this._nextSeqFromIds(existing, seqFilterPrefix) + attempt;
+      const row = { ...item, id: idOf(seq) };
+      const { data, error } = await this.supabase.from(table).insert(row).select().single();
+      if (!error) return data;
+      lastError = error;
+      if (error.code !== '23505') break;
+      await new Promise(r => setTimeout(r, 80 + Math.random() * 220));
+    }
+    throw lastError;
+  },
+
   async createRepair(data) {
     this.init();
     try {
-      const { data: allRepairs } = await this.supabase.from('repairs').select('id');
-      const seq = this._nextSeqFromIds(allRepairs);
-      
       const repair = {
-        id: Utils.generateRepairId(seq),
         ...data,
         status: 'Báo hỏng',
       };
-      
-      const { data: result, error } = await this.supabase.from('repairs').insert(repair).select().single();
-      if (error) throw error;
+      const result = await this._insertWithSeqId('repairs', repair, '', 3, (seq) => Utils.generateRepairId(seq), '');
+      repair.id = result.id;
       
       if (repair.machine_id) {
         await this.supabase.from('machines').update({ status: 'Báo hỏng' }).eq('id', repair.machine_id);
@@ -277,7 +331,8 @@ const API = {
       const { data: result } = await this.supabase.from('repairs').update(updateData).eq('id', id).select().single();
       
       if (repair.machine_id) {
-        await this.supabase.from('machines').update({ status: 'Đã sửa' }).eq('id', repair.machine_id);
+        // Repair finished: the machine is back in service
+        await this.supabase.from('machines').update({ status: 'Hoạt động' }).eq('id', repair.machine_id);
       }
       
       await this._checkAndUpdateExternalRepairStatus(id);
@@ -292,6 +347,62 @@ const API = {
     this.init();
     const { data: result, error } = await this.supabase.from('repairs').update(data).eq('id', id).select().single();
     return error ? this._handleError(error) : { success: true, data: result };
+  },
+
+  // Put a machine back to "Hoạt động" when it no longer has any open fault report
+  async _releaseMachineIfIdle(machineId) {
+    if (!machineId) return;
+    const { data: open } = await this.supabase
+      .from('repairs')
+      .select('id')
+      .eq('machine_id', machineId)
+      .in('status', ['Báo hỏng', 'Sửa ngoài', 'Đã về']);
+    if (!open || open.length === 0) {
+      await this.supabase.from('machines').update({ status: 'Hoạt động' }).eq('id', machineId);
+    }
+  },
+
+  // Delete a fault report entered by mistake (only while it is still "Báo hỏng")
+  async deleteRepair(id) {
+    this.init();
+    try {
+      const { data: repair, error: selErr } = await this.supabase.from('repairs').select('id, status, machine_id').eq('id', id).maybeSingle();
+      if (selErr) throw selErr;
+      if (!repair) return { success: false, error: 'Không tìm thấy phiếu' };
+      if (repair.status !== 'Báo hỏng') {
+        return { success: false, error: 'Chỉ xóa được phiếu đang ở trạng thái Báo hỏng' };
+      }
+      const { error } = await this.supabase.from('repairs').delete().eq('id', id);
+      if (error) throw error;
+      await this._releaseMachineIfIdle(repair.machine_id);
+      return { success: true };
+    } catch (e) {
+      return this._handleError(e);
+    }
+  },
+
+  // Edit a fault report (machine / description) while it is still "Báo hỏng"
+  async editRepair(id, data) {
+    this.init();
+    try {
+      const { data: repair, error: selErr } = await this.supabase.from('repairs').select('*').eq('id', id).maybeSingle();
+      if (selErr) throw selErr;
+      if (!repair) return { success: false, error: 'Không tìm thấy phiếu' };
+      if (repair.status !== 'Báo hỏng') {
+        return { success: false, error: 'Chỉ sửa được phiếu đang ở trạng thái Báo hỏng' };
+      }
+      const { data: result, error } = await this.supabase.from('repairs').update(data).eq('id', id).select().single();
+      if (error) throw error;
+      if (data.machine_id !== undefined && data.machine_id !== repair.machine_id) {
+        if (data.machine_id) {
+          await this.supabase.from('machines').update({ status: 'Báo hỏng' }).eq('id', data.machine_id);
+        }
+        await this._releaseMachineIfIdle(repair.machine_id);
+      }
+      return { success: true, data: result };
+    } catch (e) {
+      return this._handleError(e);
+    }
   },
 
   // Helper for External Repair Auto-completion
@@ -749,14 +860,8 @@ const API = {
         const today = new Date();
         const yy = String(today.getFullYear()).slice(-2);
         const prefix = `SCCC-${yy}-`;
-        
-        const { data: existing } = await this.supabase.from('external_repairs').select('id').like('id', `${prefix}%`);
-        const seq = this._nextSeqFromIds(existing, prefix);
-        item.id = prefix + String(seq).padStart(4, '0');
-        
-        const { data: res, error } = await this.supabase.from('external_repairs').insert(item).select().single();
-        if (error) throw error;
-        result = res;
+        delete item.id;
+        result = await this._insertWithSeqId('external_repairs', item, prefix, 4);
       }
       return { success: true, data: result };
     } catch (e) {
@@ -766,8 +871,32 @@ const API = {
   
   async deleteExternalRepair(id) {
     this.init();
-    const { error } = await this.supabase.from('external_repairs').delete().eq('id', id);
-    return error ? this._handleError(error) : { success: true };
+    try {
+      const { data: ticket } = await this.supabase.from('external_repairs').select('items').eq('id', id).maybeSingle();
+      const { error } = await this.supabase.from('external_repairs').delete().eq('id', id);
+      if (error) throw error;
+
+      // Send fault reports that were still out for repair back to "Báo hỏng" so they can be re-ticketed
+      const items = ticket ? (typeof ticket.items === 'string' ? JSON.parse(ticket.items || '[]') : (ticket.items || [])) : [];
+      const repairIds = items.map(it => it.repair_id).filter(Boolean);
+      if (repairIds.length) {
+        const { data: stuck } = await this.supabase
+          .from('repairs')
+          .select('id, machine_id')
+          .in('id', repairIds)
+          .eq('status', 'Sửa ngoài');
+        if (stuck && stuck.length) {
+          await this.supabase.from('repairs').update({ status: 'Báo hỏng' }).in('id', stuck.map(r => r.id));
+          const machineIds = stuck.map(r => r.machine_id).filter(Boolean);
+          if (machineIds.length) {
+            await this.supabase.from('machines').update({ status: 'Báo hỏng' }).in('id', machineIds);
+          }
+        }
+      }
+      return { success: true };
+    } catch (e) {
+      return this._handleError(e);
+    }
   },
   
   // ── Proposals ──
@@ -792,14 +921,8 @@ const API = {
         const today = new Date();
         const yy = String(today.getFullYear()).slice(-2);
         const prefix = `PDX-${yy}-`;
-        
-        const { data: existing } = await this.supabase.from('proposals').select('id').like('id', `${prefix}%`);
-        const seq = this._nextSeqFromIds(existing, prefix);
-        item.id = prefix + String(seq).padStart(4, '0');
-        
-        const { data: res, error } = await this.supabase.from('proposals').insert(item).select().single();
-        if (error) throw error;
-        result = res;
+        delete item.id;
+        result = await this._insertWithSeqId('proposals', item, prefix, 4);
       }
       return { success: true, data: result };
     } catch (e) {
@@ -817,7 +940,7 @@ const API = {
   async request(action, params = {}, method = 'GET') {
     switch (action) {
       case 'login': return this.login(params.username, params.password || params.password_hash);
-      case 'verify_token': return this.verifyToken();
+      case 'verify_token': return this.verifyToken(params.user_id);
       case 'logout': return this.logout();
       case 'get_machines': return this.getMachines(params);
       case 'get_machine': return this.getMachine(params.id);

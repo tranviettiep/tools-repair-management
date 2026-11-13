@@ -180,6 +180,8 @@ const RepairsPage = {
                       <div class="action-menu-item" onclick="RepairsPage.showDetail('${r.id}')"><i data-lucide="eye"></i> Chi tiết</div>
                       ${r.status === 'Sửa ngoài' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.markReturned('${r.id}')"><i data-lucide="undo-2"></i> Đã về</div>` : ''}
                       ${r.status !== 'Đã sửa' && Auth.can('complete_repair') ? `<div class="action-menu-item" onclick="RepairsPage.showCompleteModal('${r.id}')"><i data-lucide="circle-check"></i> Đã sửa</div>` : ''}
+                      ${r.status === 'Báo hỏng' && Auth.can('update_repair') ? `<div class="action-menu-item" onclick="RepairsPage.showEditModal('${r.id}')"><i data-lucide="pencil"></i> Sửa phiếu</div>` : ''}
+                      ${r.status === 'Báo hỏng' && Auth.can('update_repair') ? `<div class="action-menu-item text-danger" onclick="RepairsPage.deleteRepair('${r.id}')"><i data-lucide="trash-2"></i> Xóa phiếu</div>` : ''}
                     </div>
                   </div>
                 </td>
@@ -415,6 +417,87 @@ const RepairsPage = {
     const cfg = configResult.data.find(c => c.key === 'fault_codes');
     if (!cfg) return [];
     try { return JSON.parse(cfg.value); } catch { return []; }
+  },
+
+  showEditModal(id) {
+    const repair = this.repairs.find(r => r.id === id);
+    if (!repair) return;
+    const currentCode = repair.machine_code || repair.machine_name || '';
+
+    const content = `
+      <datalist id="dl-machines-edit">
+        ${this.machines.filter(m => m.status !== 'Ngừng sử dụng').map(m => `<option value="${Utils.escapeHtml(m.machine_code)}">${Utils.escapeHtml(m.machine_type)} (${Utils.escapeHtml(m.department)})</option>`).join('')}
+      </datalist>
+      <form onsubmit="return false">
+        <div class="form-group">
+          <label>Mã / tên thiết bị <span class="required">*</span></label>
+          <input type="text" list="dl-machines-edit" class="form-input" id="f-edit-machine" value="${Utils.escapeHtml(currentCode)}">
+        </div>
+        <div class="form-group">
+          <label>Mô tả tình trạng hỏng</label>
+          <textarea class="form-textarea" id="f-edit-desc" rows="3">${Utils.escapeHtml(repair.fault_description || '')}</textarea>
+        </div>
+      </form>
+    `;
+    const footer = `
+      <button class="btn btn-secondary" data-modal-close>Hủy</button>
+      <button class="btn btn-primary" id="btn-save-repair-edit"><i data-lucide="save"></i> Lưu thay đổi</button>
+    `;
+    const modal = Modal.show({ title: `<i data-lucide="pencil"></i> Sửa phiếu - ${Utils.escapeHtml(repair.id)}`, content, footer });
+
+    document.getElementById('btn-save-repair-edit').onclick = async () => {
+      const machineInput = document.getElementById('f-edit-machine').value.trim();
+      const desc = document.getElementById('f-edit-desc').value.trim();
+      if (!machineInput) {
+        Toast.warning('Vui lòng nhập mã hoặc tên thiết bị');
+        return;
+      }
+      const machine = this.machines.find(m => m.machine_code === machineInput || m.machine_type === machineInput);
+      const data = machine ? {
+        machine_id: machine.id,
+        machine_code: machine.machine_code,
+        machine_name: machine.machine_type,
+        department: machine.department,
+        fault_description: desc || 'Không có mô tả'
+      } : {
+        machine_id: '',
+        machine_code: '',
+        machine_name: machineInput,
+        department: repair.machine_id ? 'Khác' : (repair.department || 'Khác'),
+        fault_description: desc || 'Không có mô tả'
+      };
+      // Keep the machine link untouched when the user did not change it
+      if (machineInput === currentCode && !machine) {
+        delete data.machine_id; delete data.machine_code; delete data.machine_name; delete data.department;
+      }
+
+      const result = await API.editRepair(id, data);
+      if (result.success) {
+        Toast.success('Đã cập nhật phiếu báo hỏng');
+        modal.close();
+        await this.loadData();
+      } else {
+        Toast.error(result.error || 'Lỗi khi cập nhật phiếu');
+      }
+    };
+  },
+
+  async deleteRepair(id) {
+    const confirmed = await Modal.confirm({
+      title: 'Xóa phiếu báo hỏng',
+      message: `Xóa phiếu ${id}? Dùng khi báo hỏng nhầm. Hành động này không thể hoàn tác.`,
+      icon: '<i data-lucide="trash-2"></i>',
+      confirmText: 'Xóa',
+      danger: true
+    });
+    if (!confirmed) return;
+    const result = await API.deleteRepair(id);
+    if (result.success) {
+      Toast.success('Đã xóa phiếu báo hỏng');
+      await this.loadData();
+    } else {
+      Toast.error(result.error || 'Lỗi khi xóa phiếu');
+    }
   },
 
   async markReturned(id) {

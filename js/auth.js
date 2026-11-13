@@ -18,9 +18,13 @@ const Auth = {
       return false;
     }
 
-    // Verify token with server
-    const result = await API.verifyToken();
+    // Verify the account is still active on the server (and refresh role/name changes)
+    const result = await API.verifyToken(session.user?.id);
     if (result.success) {
+      if (result.data) {
+        session.user = result.data;
+        Utils.storage.set(this.SESSION_KEY, session);
+      }
       this.currentUser = session.user;
       this._updateActivity();
       return true;

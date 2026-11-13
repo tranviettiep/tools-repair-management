@@ -37,6 +37,26 @@ const Utils = {
     return prefix ? `${prefix}-${timestamp}-${random}` : `${timestamp}-${random}`;
   },
 
+  // Lazy-load the heavy base64 print assets (fonts, logo, Excel template) only when exporting
+  _templatePromise: null,
+  loadTemplateData() {
+    if (typeof FONT_TIMES_REGULAR_B64 !== 'undefined') return Promise.resolve();
+    if (!this._templatePromise) {
+      this._templatePromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'js/template-data.js?v=' + (window.APP_VERSION || '1');
+        s.onload = () => resolve();
+        s.onerror = () => {
+          this._templatePromise = null;
+          s.remove();
+          reject(new Error('Không tải được dữ liệu mẫu in (font/logo). Vui lòng kiểm tra mạng.'));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return this._templatePromise;
+  },
+
   // Generate repair request ID (SC-YYYYMMDD-NNN)
   generateRepairId(sequence) {
     const now = new Date();

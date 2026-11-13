@@ -251,6 +251,7 @@ const ReportsPage = {
     Toast.info('Đang tạo PDF...');
 
     try {
+      try { await Utils.loadTemplateData(); } catch (e) { console.warn(e); }
       const result = await API.getDashboardStats();
       if (!result.success) { Toast.error('Không thể tải dữ liệu'); return; }
 
