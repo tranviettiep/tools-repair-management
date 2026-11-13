@@ -121,8 +121,6 @@ const ExternalRepairsPage = {
     }
     this._items = (this._items || []).map(it => ({ ...it }));
 
-    const signDate = this._items.find(it => it.sign_date)?.sign_date || this._todayIso();
-
     // Suggest repair vendors already used on earlier tickets
     const vendors = [...new Set(this._repairs.flatMap(t => {
       try { return (typeof t.items === 'string' ? JSON.parse(t.items) : (t.items || [])).map(it => it.vendor).filter(Boolean); }
@@ -146,17 +144,11 @@ const ExternalRepairsPage = {
       content: `
         ${reportedList}
         <datalist id="dl-ext-vendors">${vendors.map(v => `<option value="${Utils.escapeHtml(v)}"></option>`).join('')}</datalist>
-        <div class="form-row" style="align-items:flex-end; margin-bottom: 12px;">
-          <div class="form-group" style="margin-bottom:0">
-            <label>Ngày ký (in ở dòng "Ngày" trên phiếu)</label>
-            <input type="date" class="form-input" id="ext-sign-date" value="${Utils.escapeHtml(signDate)}">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label>Đơn vị sửa chữa (điền nhanh cho tất cả dòng)</label>
-            <div style="display:flex; gap:8px">
-              <input type="text" class="form-input" id="ext-vendor-all" list="dl-ext-vendors" placeholder="VD: Tâm Toản">
-              <button type="button" class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.applyVendorAll()">Áp dụng</button>
-            </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label>Đơn vị sửa chữa (điền nhanh cho tất cả dòng)</label>
+          <div style="display:flex; gap:8px; max-width:480px">
+            <input type="text" class="form-input" id="ext-vendor-all" list="dl-ext-vendors" placeholder="VD: Tâm Toản">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="ExternalRepairsPage.applyVendorAll()">Áp dụng</button>
           </div>
         </div>
         <div style="margin-bottom: 12px;">
@@ -327,9 +319,6 @@ const ExternalRepairsPage = {
       return false;
     }
 
-    const signDate = document.getElementById('ext-sign-date')?.value || this._todayIso();
-    this._items.forEach(it => { it.sign_date = signDate; });
-
     const ticket = this._editingId ? { ...this._repairs.find(r => r.id === this._editingId) } : { status: 'Đang sửa' };
     ticket.items = JSON.stringify(this._items);
 
@@ -391,7 +380,6 @@ const ExternalRepairsPage = {
     }
 
     const createdText = this._fmtDate(ticket.created_at || new Date().toISOString());
-    const signText = this._fmtDate(items.find(it => it.sign_date)?.sign_date) || this._fmtDate(new Date().toISOString());
 
     try {
       Toast.info('Đang tạo PDF...');
@@ -502,9 +490,6 @@ const ExternalRepairsPage = {
       doc.setFontSize(10);
       doc.setFont('TinosFont', 'bolditalic');
       doc.text('Ngày', 196, finalY, { align: 'right' });
-      doc.setFont('TinosFont', 'normal');
-      doc.setFontSize(11);
-      doc.text(signText, 199, finalY);
 
       finalY += 9;
       const cols = [50, 135, 230];
