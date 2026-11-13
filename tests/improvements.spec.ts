@@ -227,6 +227,35 @@ test.describe('Cải tiến hệ thống (đợt rà soát 2)', () => {
     }
   });
 
+  test('IMP-05: Tạo phiếu sửa ngoài chỉ với dòng nhập tay (không chọn phiếu báo hỏng) vẫn lưu & xuất PDF được', async ({ page }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', err => pageErrors.push(err.message));
+    await loginAs(page, 'admin', 'admin');
+    const tag = `IMP5-${Date.now().toString().slice(-6)}`;
+    let extId: string | null = null;
+
+    try {
+      await page.goto('/#/external-repairs');
+      await page.getByRole('button', { name: /Tạo phiếu mới/ }).click();
+      const modal = page.locator('.modal-overlay.show');
+      await expect(modal).toBeVisible();
+      await modal.getByRole('button', { name: /Thêm dòng/ }).click();
+      await modal.locator('.ei-name').first().fill(`Động cơ nhập tay ${tag}`);
+      await modal.locator('.ei-vendor').first().fill('Tâm Toản');
+      await modal.locator('.ei-condition').first().fill('Cháy');
+
+      const dl = page.waitForEvent('download', { timeout: 15000 });
+      await modal.getByRole('button', { name: /Xác nhận và xuất PDF/ }).click();
+      const file = await dl;
+      extId = file.suggestedFilename().replace('Phieu_Sua_Chua_Ngoai_', '').replace('.pdf', '');
+      expect(extId).toMatch(/^SCCC-/);
+      await expect(page.locator('.toast.toast-error')).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+    } finally {
+      await sbDelete('external_repairs', 'id', extId);
+    }
+  });
+
   test('IMP-04: Báo hỏng 2 thiết bị gõ tay (không có trong danh sách máy) phải gửi thành công', async ({ page }) => {
     const pageErrors: string[] = [];
     page.on('pageerror', err => pageErrors.push(err.message));

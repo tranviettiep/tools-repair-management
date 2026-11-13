@@ -129,7 +129,7 @@ const ExternalRepairsPage = {
 
     const reportedList = id ? '' : `
       <div class="form-group">
-        <label>Chọn phiếu báo hỏng cần sửa ngoài <span class="required">*</span></label>
+        <label>Chọn phiếu báo hỏng cần sửa ngoài <span class="text-muted" style="font-weight:normal">(không bắt buộc – có thể bấm "Thêm dòng" để nhập tay)</span></label>
         <div class="check-list">
           ${this._reported.map(r => `
             <label class="check-list-item">
@@ -313,11 +313,8 @@ const ExternalRepairsPage = {
       return false;
     }
 
+    // Linking fault reports is optional: lines can also be typed by hand
     const repairIds = this._items.map(it => it.repair_id).filter(Boolean);
-    if (!this._editingId && repairIds.length === 0) {
-      Toast.error('Vui lòng chọn ít nhất 1 phiếu báo hỏng');
-      return false;
-    }
 
     const ticket = this._editingId ? { ...this._repairs.find(r => r.id === this._editingId) } : { status: 'Đang sửa' };
     ticket.items = JSON.stringify(this._items);
