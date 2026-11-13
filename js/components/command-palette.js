@@ -274,7 +274,7 @@ const CommandPalette = {
       });
     }
 
-    if (typeof Auth !== 'undefined' && Auth.can('edit_parts')) {
+    if (typeof Auth !== 'undefined' && Auth.can('manage_parts')) {
       actionItems.push({
         id: 'act-add-part',
         icon: 'package-plus',

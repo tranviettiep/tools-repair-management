@@ -144,11 +144,23 @@ const API = {
     return error ? this._handleError(error) : { success: true, data };
   },
 
+  // Helper: get next sequential integer from existing IDs with a given prefix (prevents collision when rows are deleted)
+  _nextSeqFromIds(rows, prefix = '') {
+    let max = 0;
+    (rows || []).forEach(r => {
+      const raw = String(r.id || '');
+      const tail = prefix && raw.startsWith(prefix) ? raw.slice(prefix.length) : raw.split('-').pop();
+      const num = parseInt(tail, 10);
+      if (!isNaN(num) && num > max) max = num;
+    });
+    return max + 1;
+  },
+
   async createRepair(data) {
     this.init();
     try {
-      const { data: todayRepairs } = await this.supabase.from('repairs').select('id');
-      const seq = (todayRepairs?.length || 0) + 1; // Simplified ID generation for demo
+      const { data: allRepairs } = await this.supabase.from('repairs').select('id');
+      const seq = this._nextSeqFromIds(allRepairs);
       
       const repair = {
         id: Utils.generateRepairId(seq),
@@ -467,6 +479,7 @@ const API = {
         'Hoạt động': machines?.filter(m => m.status === 'Hoạt động').length || 0,
         'Báo hỏng': broken,
         'Sửa ngoài': repairing,
+        'Đã về': machines?.filter(m => m.status === 'Đã về').length || 0,
         'Đã sửa': machines?.filter(m => m.status === 'Đã sửa').length || 0,
         'Ngừng sử dụng': machines?.filter(m => m.status === 'Ngừng sử dụng').length || 0
       };
@@ -593,16 +606,73 @@ const API = {
   async updateConfig(key, value) {
     this.init();
     try {
-      const { data: existing } = await this.supabase.from('config').select('key').eq('key', key).single();
+      const { data: existing, error: selErr } = await this.supabase.from('config').select('key').eq('key', key).maybeSingle();
+      if (selErr) throw selErr;
       if (existing) {
-        await this.supabase.from('config').update({ value }).eq('key', key);
+        const { error: updErr } = await this.supabase.from('config').update({ value }).eq('key', key);
+        if (updErr) throw updErr;
       } else {
-        await this.supabase.from('config').insert({ key, value, description: '' });
+        const { error: insErr } = await this.supabase.from('config').insert({ key, value, description: '' });
+        if (insErr) throw insErr;
       }
       return { success: true };
     } catch (e) {
       return this._handleError(e);
     }
+  },
+
+  async getFormSettings(username = null) {
+    const userId = username || (typeof Auth !== 'undefined' && Auth.currentUser?.username) || 'default';
+    const defaultCreator = (typeof Auth !== 'undefined' && Auth.currentUser?.full_name) || '';
+    const defaults = {
+      category: 'Sửa chữa máy công cụ',
+      purpose: 'Sửa chữa & dự phòng',
+      buyer: 'Phòng VT',
+      delivery: '',
+      creator: defaultCreator,
+      receiver: '',
+      reviewer: '',
+      head: '',
+      approver: '',
+      city: 'Ninh Bình'
+    };
+
+    try {
+      const res = await this.getConfig();
+      if (res.success && Array.isArray(res.data)) {
+        const userRow = res.data.find(c => c.key === 'form_settings_' + userId);
+        if (userRow && userRow.value) {
+          const parsed = JSON.parse(userRow.value);
+          Utils.storage.set('form_settings_' + userId, parsed);
+          return { ...defaults, ...parsed, creator: parsed.creator || defaultCreator };
+        }
+        // Fallback shared fields from admin settings if current user has not configured their own
+        const adminRow = res.data.find(c => c.key === 'form_settings_admin');
+        if (adminRow && adminRow.value) {
+          const adminParsed = JSON.parse(adminRow.value);
+          const localUser = Utils.storage.get('form_settings_' + userId, null);
+          if (localUser) {
+            return { ...defaults, ...adminParsed, ...localUser, creator: localUser.creator || defaultCreator };
+          }
+          return {
+            ...defaults,
+            ...adminParsed,
+            creator: userId === 'admin' ? (adminParsed.creator || defaultCreator) : (defaultCreator || adminParsed.creator)
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load form settings from Supabase, falling back to local storage:', e);
+    }
+
+    const local = Utils.storage.get('form_settings_' + userId, {});
+    return { ...defaults, ...local, creator: local.creator || defaultCreator };
+  },
+
+  async saveFormSettings(username, fs) {
+    const userId = username || (typeof Auth !== 'undefined' && Auth.currentUser?.username) || 'default';
+    Utils.storage.set('form_settings_' + userId, fs);
+    return this.updateConfig('form_settings_' + userId, JSON.stringify(fs));
   },
 
   async renameConfigItem(key, oldValue, newValue) {
@@ -683,11 +753,11 @@ const API = {
       } else {
         const today = new Date();
         const yy = String(today.getFullYear()).slice(-2);
+        const prefix = `SCCC-${yy}-`;
         
-        // Simple sequence generation 
-        const { data: existing } = await this.supabase.from('external_repairs').select('id').like('id', `SCCC-${yy}-%`);
-        const seq = (existing?.length || 0) + 1;
-        item.id = 'SCCC-' + yy + '-' + String(seq).padStart(4, '0');
+        const { data: existing } = await this.supabase.from('external_repairs').select('id').like('id', `${prefix}%`);
+        const seq = this._nextSeqFromIds(existing, prefix);
+        item.id = prefix + String(seq).padStart(4, '0');
         
         const { data: res, error } = await this.supabase.from('external_repairs').insert(item).select().single();
         if (error) throw error;
@@ -726,10 +796,11 @@ const API = {
       } else {
         const today = new Date();
         const yy = String(today.getFullYear()).slice(-2);
+        const prefix = `PDX-${yy}-`;
         
-        const { data: existing } = await this.supabase.from('proposals').select('id').like('id', `PDX-${yy}-%`);
-        const seq = (existing?.length || 0) + 1;
-        item.id = 'PDX-' + yy + '-' + String(seq).padStart(4, '0');
+        const { data: existing } = await this.supabase.from('proposals').select('id').like('id', `${prefix}%`);
+        const seq = this._nextSeqFromIds(existing, prefix);
+        item.id = prefix + String(seq).padStart(4, '0');
         
         const { data: res, error } = await this.supabase.from('proposals').insert(item).select().single();
         if (error) throw error;

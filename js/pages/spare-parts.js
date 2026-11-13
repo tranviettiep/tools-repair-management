@@ -389,7 +389,7 @@ const SparePartsPage = {
   async saveProposalAndExportPDF() {
     const savedId = await this.saveProposal();
     if (savedId) {
-      this.generateProposalPDF(savedId);
+      await this.generateProposalPDF(savedId);
       const closeBtn = document.querySelector('.modal-overlay.show [data-modal-close]');
       if (closeBtn) closeBtn.click();
     }
@@ -397,8 +397,7 @@ const SparePartsPage = {
 
   async saveProposal() {
     const items = this._collectProposalItems();
-    if (items.length === 0) {
-      Toast.warning('Vui lòng thêm ít nhất 1 vật tư hợp lệ!');
+    if (!items || items.length === 0) {
       return false;
     }
     
@@ -417,20 +416,8 @@ const SparePartsPage = {
     }
   },
 
-  _getFormSettings() {
-    const userId = Auth.currentUser?.username || 'default';
-    return Utils.storage.get('form_settings_' + userId, {
-      category: 'Sửa chữa máy công cụ',
-      purpose: 'Sửa chữa & dự phòng',
-      buyer: 'Phòng VT',
-      delivery: '',
-      creator: Auth.currentUser?.full_name || '',
-      receiver: '',
-      reviewer: '',
-      head: '',
-      approver: '',
-      city: 'Ninh Bình'
-    });
+  async _getFormSettings() {
+    return API.getFormSettings();
   },
 
   addProposalItem(pId = "", pQty = "", pDate = "", pPriceReq = "") {
@@ -559,7 +546,7 @@ const SparePartsPage = {
       return;
     }
 
-    const fs = this._getFormSettings();
+    const fs = await this._getFormSettings();
     const dateStr = new Date().toISOString().split('T')[0];
     const dateObj = new Date();
     
@@ -579,6 +566,7 @@ const SparePartsPage = {
       doc.addFont('Times-Regular.ttf', 'TinosFont', 'normal');
       doc.addFileToVFS('Times-Bold.ttf', FONT_TIMES_BOLD_B64);
       doc.addFont('Times-Bold.ttf', 'TinosFont', 'bold');
+      doc.addFont('Times-Bold.ttf', 'TinosFont', 'bolditalic');
       
       // Thêm phông in nghiêng và in đậm nghiêng (nếu cần thiết, jsPDF có thể tự mô phỏng nghiêng, 
       // nhưng tốt nhất là khai báo). Ở đây ta dùng TinosFont bolditalic. 
@@ -739,10 +727,20 @@ const SparePartsPage = {
       Toast.warning('Thư viện ExcelJS chưa sẵn sàng. Vui lòng tải lại trang.');
       return;
     }
-    const items = this._collectProposalItems();
-    if (!items) return;
+    let items = [];
+    if (id) {
+      const ticket = this.proposals.find(r => r.id === id);
+      if (!ticket) return;
+      items = typeof ticket.items === 'string' ? JSON.parse(ticket.items) : ticket.items;
+    } else {
+      items = this._collectProposalItems();
+    }
+    if (!items || items.length === 0) {
+      Toast.warning('Phiếu không có vật tư');
+      return;
+    }
 
-    const fs = this._getFormSettings();
+    const fs = await this._getFormSettings();
     const dateStr = new Date().toISOString().split('T')[0];
     const dateObj = new Date(dateStr);
 
@@ -801,14 +799,16 @@ const SparePartsPage = {
       const sigRowIdx = 13 + offset;
 
       // Điền thành phố và ngày
-      const cityDateText = `${fs.city}, ngày ${dateObj.getDate()} tháng ${dateObj.getMonth() + 1} năm ${dateObj.getFullYear()}`;
+      const cityDateText = fs.city
+        ? `${fs.city}, ngày ${dateObj.getDate()} tháng ${dateObj.getMonth() + 1} năm ${dateObj.getFullYear()}`
+        : `Ngày ${dateObj.getDate()} tháng ${dateObj.getMonth() + 1} năm ${dateObj.getFullYear()}`;
       worksheet.getCell(`J${cityRowIdx}`).value = cityDateText;
 
       // Điền chữ ký (do merge cell trong template)
-      worksheet.getCell(`A${sigRowIdx}`).value = `NGƯỜI LẬP\n\n\n\n\n${fs.creator}`;
-      worksheet.getCell(`C${sigRowIdx}`).value = `XEM XÉT\n\n\n\n\n${fs.reviewer}`;
-      worksheet.getCell(`H${sigRowIdx}`).value = `TRƯỞNG ĐƠN VỊ\n\n\n\n\n${fs.head}`;
-      worksheet.getCell(`K${sigRowIdx}`).value = `PHÊ DUYỆT\n\n\n\n\n${fs.approver}`;
+      worksheet.getCell(`A${sigRowIdx}`).value = `NGƯỜI LẬP\n\n\n\n\n${fs.creator || ''}`;
+      worksheet.getCell(`C${sigRowIdx}`).value = `XEM XÉT\n\n\n\n\n${fs.reviewer || ''}`;
+      worksheet.getCell(`H${sigRowIdx}`).value = `TRƯỞNG ĐƠN VỊ\n\n\n\n\n${fs.head || ''}`;
+      worksheet.getCell(`K${sigRowIdx}`).value = `PHÊ DUYỆT\n\n\n\n\n${fs.approver || ''}`;
 
       // Xuất file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -870,9 +870,8 @@ const SparePartsPage = {
 
     const result = await API.importPart(partId, qty, notes);
     if (result.success) {
-      Toast.success('Nhập kho thành công');
       await this.loadData();
-      this.switchTab('import');
+      Toast.success('Nhập kho thành công');
     } else {
       Toast.error(result.error);
     }
@@ -891,9 +890,8 @@ const SparePartsPage = {
 
     const result = await API.exportPart(partId, qty, repairId, notes);
     if (result.success) {
-      Toast.success('Xuất kho thành công');
       await this.loadData();
-      this.switchTab('import');
+      Toast.success('Xuất kho thành công');
     } else {
       Toast.error(result.error);
     }

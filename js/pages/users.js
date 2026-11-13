@@ -4,6 +4,7 @@
 
 const UsersPage = {
   users: [],
+  departments: ['Phân xưởng A', 'Phân xưởng B', 'Phân xưởng C', 'Phân xưởng D'],
 
   async render() {
     const container = document.getElementById('page-content');
@@ -30,7 +31,13 @@ const UsersPage = {
   },
 
   async loadData() {
-    const result = await API.getUsers();
+    const [result, configRes] = await Promise.all([API.getUsers(), API.getConfig()]);
+    if (configRes?.success && Array.isArray(configRes.data)) {
+      const deptCfg = configRes.data.find(c => c.key === 'departments');
+      if (deptCfg?.value) {
+        try { this.departments = JSON.parse(deptCfg.value); } catch {}
+      }
+    }
     if (result.success) {
       this.users = result.data;
       this.renderTable();
@@ -41,6 +48,7 @@ const UsersPage = {
 
   renderTable() {
     const container = document.getElementById('users-table-body');
+    if (!container) return;
     container.innerHTML = `
       <table class="data-table">
         <thead>
@@ -121,8 +129,8 @@ const UsersPage = {
             <label>Bộ phận</label>
             <select class="form-select" id="f-user-dept">
               <option value="">-- Tất cả --</option>
-              ${['Phân xưởng A', 'Phân xưởng B', 'Phân xưởng C', 'Phân xưởng D'].map(d =>
-                `<option value="${d}" ${user?.department === d ? 'selected' : ''}>${d}</option>`
+              ${[...new Set([...this.departments, ...(user?.department ? [user.department] : [])])].filter(Boolean).map(d =>
+                `<option value="${Utils.escapeHtml(d)}" ${user?.department === d ? 'selected' : ''}>${Utils.escapeHtml(d)}</option>`
               ).join('')}
             </select>
           </div>

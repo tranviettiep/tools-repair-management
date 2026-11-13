@@ -75,6 +75,7 @@ const DashboardPage = {
     }
 
     const data = result.data;
+    if (!document.getElementById('stats-grid')) return;
     this.renderStats(data);
     this.renderMonthlyChart(data.monthlyData);
     this.renderStatusChart(data.statusDist);
@@ -84,6 +85,7 @@ const DashboardPage = {
 
   renderStats(data) {
     const grid = document.getElementById('stats-grid');
+    if (!grid) return;
     grid.innerHTML = `
       <div class="stat-card total">
         <div class="stat-card-header">
@@ -221,6 +223,7 @@ const DashboardPage = {
 
   renderRecentRepairs(repairs) {
     const container = document.getElementById('recent-repairs-table');
+    if (!container) return;
     if (!repairs || repairs.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i data-lucide="clipboard-list"></i></div><div class="empty-state-title">Chưa có yêu cầu nào</div></div>';
       return;
@@ -254,6 +257,7 @@ const DashboardPage = {
 
   renderLowStock(parts) {
     const container = document.getElementById('low-stock-table');
+    if (!container) return;
     if (!parts || parts.length === 0) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i data-lucide="circle-check"></i></div><div class="empty-state-title">Tồn kho ổn định</div><div class="empty-state-desc">Tất cả phụ tùng trên mức tối thiểu</div></div>';
       return;

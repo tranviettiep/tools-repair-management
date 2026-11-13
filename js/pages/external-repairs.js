@@ -59,6 +59,7 @@ const ExternalRepairsPage = {
 
   renderTable() {
     const tbody = document.getElementById('external-repairs-tbody');
+    if (!tbody) return;
     let displayRepairs = this._repairs;
     
     const filterStatus = document.getElementById('ext-repair-status-filter')?.value;
@@ -235,7 +236,7 @@ const ExternalRepairsPage = {
   async saveTicketAndExportPDF() {
     const savedId = await this.saveTicket();
     if (savedId) {
-      this.generatePDF(savedId);
+      await this.generatePDF(savedId);
       const closeBtn = document.querySelector('.modal-overlay.show [data-modal-close]');
       if (closeBtn) closeBtn.click();
     }
@@ -265,7 +266,7 @@ const ExternalRepairsPage = {
     if (res.success) {
       if (!this._editingId) await API.markRepairsExternal(repairIds, res.data.id);
       Toast.success('Đã lưu phiếu sửa chữa ngoài');
-      this.loadData();
+      await this.loadData();
       return res.data.id;
     } else {
       Toast.error('Lỗi khi lưu');
@@ -279,7 +280,11 @@ const ExternalRepairsPage = {
       return;
     }
     
-    const ticket = this._repairs.find(r => r.id === id);
+    let ticket = this._repairs.find(r => r.id === id);
+    if (!ticket) {
+      await this.loadData();
+      ticket = this._repairs.find(r => r.id === id);
+    }
     if (!ticket) return;
 
     let items = [];
@@ -289,9 +294,7 @@ const ExternalRepairsPage = {
       items = [];
     }
 
-    const fs = Utils.storage.get('form_settings') || {
-      city: 'Ninh Bình', creator: 'Quản trị viên', reviewer: '', head: '', approver: ''
-    };
+    const fs = await API.getFormSettings();
 
     const dateObj = new Date(ticket.created_at || Date.now());
     const dd = String(dateObj.getDate()).padStart(2, '0');
@@ -309,6 +312,7 @@ const ExternalRepairsPage = {
       doc.addFont('Times-Regular.ttf', 'TinosFont', 'normal');
       doc.addFileToVFS('Times-Bold.ttf', FONT_TIMES_BOLD_B64);
       doc.addFont('Times-Bold.ttf', 'TinosFont', 'bold');
+      doc.addFont('Times-Bold.ttf', 'TinosFont', 'bolditalic');
       
       doc.setFont('TinosFont');
 

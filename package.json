@@ -1,0 +1,32 @@
+{
+  "name": "tools-repair-management",
+  "version": "1.0.0",
+  "main": "fix.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:codegen": "playwright codegen http://localhost:8080",
+    "test:report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tranviettiep/tools-repair-management.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tranviettiep/tools-repair-management/issues"
+  },
+  "homepage": "https://github.com/tranviettiep/tools-repair-management#readme",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^26.6.4"
+  }
+}

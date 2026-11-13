@@ -209,7 +209,12 @@ const ReportsPage = {
         'Ngày báo': Utils.formatDateTime(r.reported_at),
         'KTV': r.technician,
         'Ngày sửa xong': Utils.formatDateTime(r.completed_at),
-        'Mã lỗi': (() => { try { return JSON.parse(r.fault_codes || '[]').map(c => c.code).join(', '); } catch { return ''; } })(),
+        'Mã lỗi': (() => {
+          try {
+            const list = Array.isArray(r.fault_codes) ? r.fault_codes : JSON.parse(r.fault_codes || '[]');
+            return list.map(c => c?.code || c).filter(Boolean).join(', ');
+          } catch { return ''; }
+        })(),
         'Chi phí': r.total_cost,
         'Ghi chú': r.repair_notes
       }));
@@ -221,13 +226,15 @@ const ReportsPage = {
         XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo sửa chữa');
         XLSX.writeFile(wb, `bao-cao-sua-chua-${new Date().toISOString().slice(0, 10)}.xlsx`);
         Toast.success('Đã xuất file Excel');
-      } else {
+      } else if (data.length > 0) {
         // Fallback to CSV
         const headers = Object.keys(data[0]);
         const csv = [headers.join(','), ...data.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))].join('\n');
         const bom = '\uFEFF';
         Utils.downloadFile(bom + csv, `bao-cao-sua-chua-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8');
         Toast.success('Đã xuất file CSV');
+      } else {
+        Toast.warning('Chưa có dữ liệu để xuất');
       }
     } catch (err) {
       Toast.error('Lỗi khi xuất báo cáo');
@@ -250,8 +257,19 @@ const ReportsPage = {
       const { jsPDF: JsPDF } = window.jspdf || { jsPDF: window.jsPDF };
       const doc = new JsPDF();
 
+      if (typeof FONT_TIMES_REGULAR_B64 !== 'undefined') {
+        doc.addFileToVFS('Times-Regular.ttf', FONT_TIMES_REGULAR_B64);
+        doc.addFont('Times-Regular.ttf', 'TinosFont', 'normal');
+        if (typeof FONT_TIMES_BOLD_B64 !== 'undefined') {
+          doc.addFileToVFS('Times-Bold.ttf', FONT_TIMES_BOLD_B64);
+          doc.addFont('Times-Bold.ttf', 'TinosFont', 'bold');
+        }
+        doc.setFont('TinosFont', 'bold');
+      }
+
       doc.setFontSize(16);
       doc.text('BÁO CÁO TỔNG HỢP SỬA CHỮA MÁY CÔNG CỤ', 15, 20);
+      if (typeof FONT_TIMES_REGULAR_B64 !== 'undefined') doc.setFont('TinosFont', 'normal');
       doc.setFontSize(10);
       doc.text(`Ngày xuất: ${Utils.formatDate(new Date().toISOString())}`, 15, 28);
 

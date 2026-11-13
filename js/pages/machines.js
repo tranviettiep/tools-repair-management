@@ -141,6 +141,7 @@ const MachinesPage = {
 
   renderTable() {
     const container = document.getElementById('machines-table-body');
+    if (!container) return;
     const total = this.filteredMachines.length;
     const start = (this.currentPage - 1) * this.pageSize;
     const end = Math.min(start + this.pageSize, total);
@@ -555,10 +556,18 @@ const MachinesPage = {
   reportFault(id) {
     const machine = this.machines.find(m => m.id === id);
     if (machine) {
-      // Switch to repairs page with pre-filled machine
-      Utils.storage.set('prefill_repair', { machine_id: machine.id, machine_code: machine.machine_code, machine_name: machine.machine_name || machine.machine_type, department: machine.department });
-      Router.navigate('/repairs');
-      setTimeout(() => RepairsPage.showAddModal(), 500);
+      // Switch to repairs page with pre-filled machine; RepairsPage.loadData() opens the modal once ready
+      Utils.storage.set('prefill_repair', {
+        machine_id: machine.id,
+        machine_code: machine.machine_code,
+        machine_name: machine.machine_name || machine.machine_type,
+        department: machine.department
+      });
+      if (Router.getPath() === '/repairs') {
+        RepairsPage.showAddModal();
+      } else {
+        Router.navigate('/repairs');
+      }
     }
   }
 };

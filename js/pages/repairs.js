@@ -71,10 +71,10 @@ const RepairsPage = {
 
     this.applyFilters();
 
-    // Check for prefilled repair from machine page
+    // Open prefilled repair modal when redirected from machine page
     const prefill = Utils.storage.get('prefill_repair');
-    if (prefill) {
-      Utils.storage.remove('prefill_repair');
+    if (prefill && Router.getPath() === '/repairs') {
+      this.showAddModal();
     }
   },
 

@@ -165,6 +165,7 @@ const SettingsPage = {
   },
 
   renderConfigLists() {
+    if (!document.getElementById('setting-machine-types')) return;
     const types = this._getConfigValue('machine_types', []);
     const depts = this._getConfigValue('departments', []);
     const brands = this._getConfigValue('manufacturers', ['Bosch']);
@@ -400,8 +401,14 @@ const SettingsPage = {
 
 
   loadFormSettings() {
+    if (!document.getElementById('fs-creator')) return;
     const userId = Auth.currentUser?.username || 'default';
-    const fs = Utils.storage.get('form_settings_' + userId, {});
+    const remoteFs = this._getConfigValue('form_settings_' + userId, null);
+    const localFs = Utils.storage.get('form_settings_' + userId, {});
+    const fs = remoteFs || localFs || {};
+    if (remoteFs) {
+      Utils.storage.set('form_settings_' + userId, remoteFs);
+    }
     const fields = ['category','purpose','buyer','delivery','creator','receiver','reviewer','head','approver','city'];
     fields.forEach(f => {
       const el = document.getElementById('fs-' + f);
@@ -412,7 +419,7 @@ const SettingsPage = {
     if (creatorEl && !creatorEl.value) creatorEl.value = Auth.currentUser?.full_name || '';
   },
 
-  saveFormSettings() {
+  async saveFormSettings() {
     const userId = Auth.currentUser?.username || 'default';
     const fields = ['category','purpose','buyer','delivery','creator','receiver','reviewer','head','approver','city'];
     const fs = {};
@@ -420,7 +427,12 @@ const SettingsPage = {
       const el = document.getElementById('fs-' + f);
       if (el) fs[f] = el.value.trim();
     });
-    Utils.storage.set('form_settings_' + userId, fs);
-    Toast.success('Đã lưu thông tin biểu mẫu');
+    const res = await API.saveFormSettings(userId, fs);
+    if (res.success) {
+      await this.loadData();
+      Toast.success('Đã lưu thông tin biểu mẫu');
+    } else {
+      Toast.error(res.error || 'Lỗi khi lưu thông tin biểu mẫu');
+    }
   },
 };
