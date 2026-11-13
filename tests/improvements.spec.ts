@@ -226,5 +226,34 @@ test.describe('Cải tiến hệ thống (đợt rà soát 2)', () => {
       await userCtx.close().catch(() => {});
     }
   });
+
+  test('IMP-04: Báo hỏng 2 thiết bị gõ tay (không có trong danh sách máy) phải gửi thành công', async ({ page }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', err => pageErrors.push(err.message));
+    await loginAs(page, 'admin', 'admin');
+    const tag = `IMP4-${Date.now().toString().slice(-6)}`;
+
+    try {
+      await page.goto('/#/repairs');
+      await expect(page.locator('#repairs-content .spinner')).toBeHidden();
+      await page.locator('.page-header-actions button:has-text("Báo hỏng")').click();
+      const modal = page.locator('.modal-overlay.show');
+      await modal.locator('.r-machine').first().fill(`Cuộn dây máy mài to ${tag}`);
+      await modal.locator('.r-desc').first().fill('cháy cuộn dây');
+      await modal.getByRole('button', { name: /Thêm dòng/ }).click();
+      await modal.locator('.r-machine').nth(1).fill(`Cuộn dây máy mài bé ${tag}`);
+      await modal.locator('.r-desc').nth(1).fill('cháy cuộn dây');
+      await modal.getByRole('button', { name: /Gửi báo hỏng/ }).click();
+
+      await expect(page.locator('.toast.toast-success', { hasText: 'Đã báo hỏng thành công 2 thiết bị' })).toBeVisible();
+      await expect(page.locator('#repairs-content tbody tr', { hasText: tag })).toHaveCount(2);
+      const rows = await sbGet('repairs', `machine_name=like.*${tag}*&select=id,machine_id,department`);
+      expect(rows.length).toBe(2);
+      rows.forEach((r: any) => { expect(r.machine_id).toBeNull(); expect(r.department).toBe('Khác'); });
+      expect(pageErrors).toEqual([]);
+    } finally {
+      await fetch(`${SUPABASE_REST}/repairs?machine_name=like.*${tag}*`, { method: 'DELETE', headers: SB_HEADERS });
+    }
+  });
 });
 

@@ -222,6 +222,8 @@ const API = {
         ...data,
         status: 'Báo hỏng',
       };
+      // Machines typed by hand (not in the list) have no FK link: must be NULL, never ''
+      if (!repair.machine_id) repair.machine_id = null;
       const result = await this._insertWithSeqId('repairs', repair, '', 3, (seq) => Utils.generateRepairId(seq), '');
       repair.id = result.id;
       
@@ -391,6 +393,7 @@ const API = {
       if (repair.status !== 'Báo hỏng') {
         return { success: false, error: 'Chỉ sửa được phiếu đang ở trạng thái Báo hỏng' };
       }
+      if (data.machine_id === '') data.machine_id = null;
       const { data: result, error } = await this.supabase.from('repairs').update(data).eq('id', id).select().single();
       if (error) throw error;
       if (data.machine_id !== undefined && data.machine_id !== repair.machine_id) {

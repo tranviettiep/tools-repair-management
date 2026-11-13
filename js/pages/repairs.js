@@ -372,6 +372,7 @@ const RepairsPage = {
 
     Toast.info('Đang gửi yêu cầu...');
     let successCount = 0;
+    const errors = [];
     
     for (const item of items) {
       let machine = this.machines.find(m => m.machine_code === item.machineInput || m.machine_type === item.machineInput);
@@ -389,7 +390,7 @@ const RepairsPage = {
         };
       } else {
         data = {
-          machine_id: '',
+          machine_id: null, // machine typed by hand: no FK link (an empty string violates repairs_machine_id_fkey)
           machine_code: '',
           machine_name: item.machineInput,
           department: 'Khác',
@@ -401,14 +402,16 @@ const RepairsPage = {
       
       const result = await API.createRepair(data);
       if (result.success) successCount++;
+      else errors.push(`${item.machineInput}: ${result.error || 'lỗi không xác định'}`);
     }
     
     if (successCount > 0) {
       Toast.success(`Đã báo hỏng thành công ${successCount} thiết bị`);
+      if (errors.length) Toast.error(`Không gửi được ${errors.length} dòng – ${errors.join('; ')}`);
       Modal.closeAll();
       await this.loadData();
     } else {
-      Toast.error('Có lỗi xảy ra, không thể gửi yêu cầu');
+      Toast.error('Không thể gửi yêu cầu: ' + (errors[0] || 'lỗi không xác định'));
     }
   },
 
@@ -460,7 +463,7 @@ const RepairsPage = {
         department: machine.department,
         fault_description: desc || 'Không có mô tả'
       } : {
-        machine_id: '',
+        machine_id: null,
         machine_code: '',
         machine_name: machineInput,
         department: repair.machine_id ? 'Khác' : (repair.department || 'Khác'),

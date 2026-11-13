@@ -5,7 +5,7 @@
 // CDN libraries: served from cache, refreshed in the background.
 // Supabase API calls are never cached, so data shown is always live.
 
-const CACHE = 'trm-v7';
+const CACHE = 'trm-v8';
 const CDN_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'cdn.sheetjs.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
